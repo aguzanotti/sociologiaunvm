@@ -82,7 +82,8 @@
           complete: (results) => {
             const cleanedData = results.data.map(row => ({
               ...row,
-              Gender: inferGender(row['Apellido y Nombre']),
+              Gender: row['Certificado'] === 'LICENCIADA EN SOCIOLOGIA' ? 'Femenino' : 
+                      row['Certificado'] === 'LICENCIADO EN SOCIOLOGIA' ? 'Masculino' : 'Desconocido',
               Estado: row['Estado'] || 'Desconocido'
             }));
             setData(cleanedData);
@@ -94,14 +95,6 @@
           }
         });
       }, []);
-
-      // Inferir género basado en el nombre (heurística simplificada)
-      const inferGender = (name) => {
-        if (!name) return 'Desconocido';
-        const firstName = name.split(',')[1]?.trim().split(' ')[0]?.toLowerCase() || '';
-        const femaleNames = ['maria', 'yanina', 'solana', 'matilde', 'veronica', 'mariel', 'dina', 'fernanda', 'paola', 'sofia', 'julia', 'valentina', 'mercedes', 'catalina', 'lucrecia', 'lucia', 'camila', 'clara', 'natalia', 'rocio', 'erika', 'luciana', 'malena', 'daniela', 'agustina', 'monica', 'noelia', 'azul', 'deborah', 'marilina', 'melanie', 'isabel', 'ana', 'carla', 'graciela', 'dayana', 'candela', 'eugenia', 'monserrat', 'brenda', 'julieta', 'romina', 'alicia', 'estefania', 'rosa', 'emilia', 'guadalupe', 'elisa', 'virginia', 'pilar', 'josefina', 'paloma'];
-        return femaleNames.includes(firstName) ? 'Femenino' : 'Masculino';
-      };
 
       // Preparar datos para las visualizaciones
       const totalGraduates = data.length;
@@ -161,7 +154,7 @@
           <div className="bg-white p-6 rounded-lg shadow-lg mb-8">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Resumen</h2>
             <p className="text-lg text-gray-600">
-              Este tablero presenta datos de {formatNumber(totalGraduates)} graduados en sociología de la UNVM. Incluye la distribución por género, estado de certificación y rangos de número de trámite, junto con un listado detallado de los graduados. Un dato destacado: la mayoría de los graduados están en el estado "Diplomado", con una distribución equilibrada de géneros.
+              Este tablero presenta datos de {formatNumber(totalGraduates)} graduados en sociología de la UNVM. Incluye la distribución por género (determinada por el título de Licenciado o Licenciada), estado de certificación y rangos de número de trámite, junto con un listado detallado de los graduados. Un dato destacado: la mayoría de los graduados están en el estado "Diplomado", con una distribución equilibrada de géneros según los títulos otorgados.
             </p>
           </div>
 
