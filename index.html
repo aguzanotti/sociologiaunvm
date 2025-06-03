@@ -82,8 +82,8 @@
           complete: (results) => {
             const cleanedData = results.data.map(row => ({
               ...row,
-              Gender: row['Certificado'] === 'LICENCIADA EN SOCIOLOGIA' ? 'Femenino' : 
-                      row['Certificado'] === 'LICENCIADO EN SOCIOLOGIA' ? 'Masculino' : 'Desconocido',
+              Categoria: row['Certificado'] === 'LICENCIADA EN SOCIOLOGIA' ? 'Licenciada' : 
+                        row['Certificado'] === 'LICENCIADO EN SOCIOLOGIA' ? 'Licenciado' : 'Desconocido',
               Estado: row['Estado'] || 'Desconocido'
             }));
             setData(cleanedData);
@@ -98,10 +98,10 @@
 
       // Preparar datos para las visualizaciones
       const totalGraduates = data.length;
-      const genderData = [
-        { name: 'Masculino', value: data.filter(d => d.Gender === 'Masculino').length },
-        { name: 'Femenino', value: data.filter(d => d.Gender === 'Femenino').length },
-        { name: 'Desconocido', value: data.filter(d => d.Gender === 'Desconocido').length }
+      const categoriaData = [
+        { name: 'Licenciado', value: data.filter(d => d.Categoria === 'Licenciado').length },
+        { name: 'Licenciada', value: data.filter(d => d.Categoria === 'Licenciada').length },
+        { name: 'Desconocido', value: data.filter(d => d.Categoria === 'Desconocido').length }
       ].filter(d => d.value > 0);
 
       const statusData = [
@@ -154,19 +154,19 @@
           <div className="bg-white p-6 rounded-lg shadow-lg mb-8">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Resumen</h2>
             <p className="text-lg text-gray-600">
-              Este tablero presenta datos de {formatNumber(totalGraduates)} graduados en sociología de la UNVM. Incluye la distribución por género (determinada por el título de Licenciado o Licenciada), estado de certificación y rangos de número de trámite, junto con un listado detallado de los graduados. Un dato destacado: la mayoría de los graduados están en el estado "Diplomado", con una distribución equilibrada de géneros según los títulos otorgados.
+              Este tablero presenta datos de {formatNumber(totalGraduates)} graduados en sociología de la UNVM. Incluye la distribución por categoría (Licenciado o Licenciada), estado de certificación y rangos de número de trámite, junto con un listado detallado de los graduados. Un dato destacado: la mayoría de los graduados están en el estado "Diplomado", con una distribución equilibrada entre Licenciados y Licenciadas.
             </p>
           </div>
 
           {/* Sección de visualizaciones */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Gráfico de Distribución por Género */}
+            {/* Gráfico de Distribución por Categoría */}
             <div className="bg-white p-6 rounded-lg shadow-lg">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Distribución por Género</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Distribución por Categoría</h3>
               <Recharts.ResponsiveContainer width="100%" height={300}>
                 <Recharts.PieChart>
                   <Recharts.Pie
-                    data={genderData}
+                    data={categoriaData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -176,7 +176,7 @@
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
                     labelLine={true}
                   >
-                    {genderData.map((entry, index) => (
+                    {categoriaData.map((entry, index) => (
                       <Recharts.Cell key={`cell-${index}`} fill={['#3B82F6', '#EC4899', '#6B7280'][index % 3]} />
                     ))}
                   </Recharts.Pie>
@@ -235,7 +235,7 @@
                     <th className="px-4 py-2 text-left">Apellido y Nombre</th>
                     <th className="px-4 py-2 text-left">Certificado</th>
                     <th className="px-4 py-2 text-left">Estado</th>
-                    <th className="px-4 py-2 text-left">Género</th>
+                    <th className="px-4 py-2 text-left">Categoría</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -245,7 +245,7 @@
                       <td className="px-4 py-2">{row['Apellido y Nombre']}</td>
                       <td className="px-4 py-2">{row['Certificado']}</td>
                       <td className="px-4 py-2">{row['Estado']}</td>
-                      <td className="px-4 py-2">{row['Gender']}</td>
+                      <td className="px-4 py-2">{row['Categoria']}</td>
                     </tr>
                   ))}
                 </tbody>
