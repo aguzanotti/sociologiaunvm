@@ -1,661 +1,275 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!-- Configurando HTML con dependencias -->
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Estudiantes 2025</title>
-  <!-- Custom CSS for improved styling -->
-  <style>
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #f7fafc;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 1rem;
-    }
-    .card {
-      background: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      border: 1px solid #e2e8f0;
-    }
-    .card h2 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: #1a202c;
-      margin-bottom: 1rem;
-    }
-    .chart-container {
-      padding: 1rem;
-      background: #f8fafc;
-      border-radius: 8px;
-      border: 1px solid #edf2f7;
-    }
-    .summary-card {
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .summary-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-    }
-    .qualitative-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .qualitative-icon {
-      font-size: 1.5rem;
-      color: #3b82f6;
-    }
-    .callout {
-      background: #fefcbf;
-      padding: 1rem;
-      border-radius: 6px;
-      margin-top: 0.5rem;
-      font-style: italic;
-    }
-    @media (min-width: 768px) {
-      .card h2 {
-        font-size: 1.75rem;
-      }
-      .container {
-        padding: 2rem;
-      }
-    }
-  </style>
-  <!-- External libraries -->
+  <title>Relevamiento UNVM 2025 - Edutics</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome para íconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- React y Recharts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.15.0/Recharts.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
-  <!-- FontAwesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .fade-in { animation: fadeIn 1s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .timeline-dot { transition: transform 0.3s; }
+    .timeline-dot:hover { transform: scale(1.2); }
+    .markdown-content h1 { font-size: 2rem; font-weight: 800; color: #1e3a8a; margin-bottom: 1rem; }
+    .markdown-content h2 { font-size: 1.5rem; font-weight: 700; color: #1e3a8a; margin: 1.5rem 0 0.5rem; }
+    .markdown-content h3 { font-size: 1.2rem; font-weight: 600; color: #1e40af; margin: 1rem 0 0.5rem; }
+    .markdown-content p, .markdown-content li { color: #374151; line-height: 1.6; }
+    .markdown-content ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+    .markdown-content em { font-style: italic; }
+    .markdown-content strong { font-weight: 700; }
+    .intro-content p { color: #374151; line-height: 1.6; }
+  </style>
 </head>
-<body>
-  <div id="root" class="container"></div>
-
-  <script type="text/javascript">
-    // CSV data embedded directly
-    const csvData = `¿Qué carrera cursás?,¿En qué año de la carrera estás?,¿A qué instituto pertenece?,¿Cuál es tu edad?,¿Cuál es tu género?
-Administración,segundo,Instituto AP Sociales,19,M
-Administración,primero,Instituto AP Sociales,19,F
-Contador Público,segundo,Instituto AP Sociales,24,F
-Contador Público,tercero,Instituto AP Sociales,26,F
-Contador Público,tercero,Instituto AP Sociales,22,F
-Contador Público,quinto,Instituto AP Sociales,25,F
-Gestión Educativa,segundo,Instituto AP Humanas,37,F
-Gestión Educativa,segundo,Instituto AP Humanas,50,F
-Gestión Educativa,segundo,Instituto AP Humanas,44,F
-Gestión Educativa,segundo,Instituto AP Humanas,42,F
-Gestión Educativa,cuarto,Instituto AP Humanas,39,M
-Agronomía,tercero,Instituto AP Básicas,22,F
-Ambiente y energías renovables,cuarto,Instituto AP Básicas,24,M
-Ambiente y energías renovables,cuarto,Instituto AP Básicas,21,F
-Ciencias de la educación,segundo,Instituto AP Humanas,41,F
-Ciencias de la educación,segundo,Instituto AP Humanas,44,F
-Medicina veterinaria,quinto,Instituto AP Básicas,44,M
-Ciencia Política,segundo,Instituto AP Sociales,51,M
-Ciencia Política,segundo,Instituto AP Sociales,32,F
-Ciencia Política,cuarto,Instituto AP Sociales,21,F
-Sociología,segundo,Instituto AP Sociales,70,M
-Sociología,primero,Instituto AP Sociales,19,F
-Sociología,quinto,Instituto AP Sociales,22,M
-Sociología,primero,Instituto AP Sociales,44,F
-Trabajo Social,cuarto,Instituto AP Sociales,26,F
-Trabajo Social,quinto,Instituto AP Sociales,24,F
-Trabajo Social,cuarto,Instituto AP Sociales,24,M
-Trabajo Social,cuarto,Instituto AP Sociales,24,M
-Trabajo Social,quinto,Instituto AP Sociales,21,F
-Trabajo Social,cuarto,Instituto AP Sociales,21,F
-Comunicación Social,cuarto,Instituto AP Sociales,41,F
-Comunicación Social,quinto,Instituto AP Sociales,22,M
-Comunicación Social,tercero,Instituto AP Sociales,20,F
-Comunicación Social,cuarto,Instituto AP Sociales,22,M
-Comunicación Social,tercero,Instituto AP Sociales,20,F
-Comunicación Social,quinto,Instituto AP Sociales,22,M
-Composicion musical,quinto,Instituto AP Humanas,27,M
-Comunicación Social,tercero,Instituto AP Sociales,20,M
-Comunicación Social,tercero,Instituto AP Sociales,20,F
-Comunicación Social,tercero,Instituto AP Sociales,20,F
-Diseño y producción audiovisual,quinto,Instituto AP Humanas,23,F
-Diseño y producción audiovisual,cuarto,Instituto AP Humanas,24,M
-Lic. Lengua y literatura,primero,Instituto AP Humanas,39,M
-Prof en Lengua y Literatura,segundo,Instituto AP Humanas,19,F
-Enfermería,primero,Instituto AP Humanas,34,M
-Medicina,tercero,Instituto AP Humanas,25,M
-Medicina,tercero,Instituto AP Humanas,22,M
-Medicina,tercero,Instituto AP Humanas,22,M
-Medicina,segundo,Instituto AP Humanas,22,F
-Medicina,tercero,Instituto AP Humanas,21,F
-Gestión Educativa,segundo,Instituto AP Humanas,43,F
-Gestión Educativa,cuarto,Instituto AP Humanas,38,F
-Gestión Educativa,tercero,Instituto AP Humanas,34,F
-Gestión Educativa,segundo,Instituto AP Humanas,38,F
-Gestión Educativa,segundo,Instituto AP Humanas,42,F
-Gestión Educativa,tercero,Instituto AP Humanas,43,F
-Gestión Educativa,segundo,Instituto AP Humanas,40,F
-Gestión Educativa,segundo,Instituto AP Humanas,40,F
-Gestión Educativa,segundo,Instituto AP Humanas,40,M
-Gestión Educativa,segundo,Instituto AP Humanas,45,F
-Gestión Educativa,segundo,Instituto AP Humanas,37,F
-Gestión Educativa,segundo,Instituto AP Humanas,49,F
-Gestión Educativa,segundo,Instituto AP Humanas,46,F
-Gestión Educativa,segundo,Instituto AP Humanas,46,F
-Gestión Educativa,segundo,Instituto AP Humanas,42,F
-Gestión Educativa,segundo,Instituto AP Humanas,39,F`;
-  </script>
+<body class="bg-gradient-to-b from-blue-50 to-gray-100 min-h-screen">
+  <div id="root" class="container mx-auto p-6"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
-    const {
-      BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-    } = Recharts;
+    // Importando componentes de Recharts
+    const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } = Recharts;
 
-    const App = () => {
-      const [data, setData] = useState([]);
-      const [loading, setLoading] = useState(true);
-
-      const processAndCleanData = (rawData) => {
-        return rawData
-          .filter(row => row["¿Qué carrera cursás?"] && row["¿En qué año de la carrera estás?"])
-          .map(row => ({
-            carrera: row["¿Qué carrera cursás?"].trim(),
-            año: row["¿En qué año de la carrera estás?"].trim(),
-            instituto: row["¿A qué instituto pertenece?"].trim(),
-            edad: parseInt(row["¿Cuál es tu edad?"], 10) || null,
-            género: row["¿Cuál es tu género?"].trim(),
-            grupo: row["GRUPOS"] ? row["GRUPOS"].trim() : "N/A",
-            seguimiento: row["SEGUIMIENTO"] ? row["SEGUIMIENTO"].trim() : "N/A"
-          }))
-          .filter(row => row.edad !== null);
-      };
-
-      useEffect(() => {
-        Papa.parse(csvData, {
-          header: true,
-          skipEmptyLines: true,
-          transformHeader: header => header.trim().replace(/^"|"$/g, ''),
-          transform: (value, header) => value.trim().replace(/^"|"$/g, ''),
-          complete: (results) => {
-            const cleanedData = processAndCleanData(results.data);
-            setData(cleanedData);
-            setLoading(false);
-          },
-          error: (err) => {
-            console.error("Error parsing CSV:", err);
-            setLoading(false);
-          }
-        });
-      }, []);
-
-      const getCareerDistribution = () => {
-        const careerCounts = data.reduce((acc, row) => {
-          acc[row.carrera] = (acc[row.carrera] || 0) + 1;
-          return acc;
-        }, {});
-        let otherCount = 0;
-        const filteredCounts = {};
-        Object.entries(careerCounts).forEach(([carrera, count]) => {
-          if (count === 1) {
-            otherCount += count;
-          } else {
-            filteredCounts[carrera] = count;
-          }
-        });
-        if (otherCount > 0) {
-          filteredCounts["Otras"] = otherCount;
-        }
-        return Object.entries(filteredCounts)
-          .map(([carrera, count]) => ({ carrera, count }))
-          .sort((a, b) => b.count - a.count || a.carrera.localeCompare(b.carrera));
-      };
-
-      const getGenderDistribution = () => {
-        const genderCounts = data.reduce((acc, row) => {
-          acc[row.género] = (acc[row.género] || 0) + 1;
-          return acc;
-        }, {});
-        return Object.entries(genderCounts).map(([género, count]) => ({ género, count }));
-      };
-
-      const getYearDistribution = () => {
-        const yearCounts = data.reduce((acc, row) => {
-          acc[row.año] = (acc[row.año] || 0) + 1;
-          return acc;
-        }, {});
-        return Object.entries(yearCounts).map(([año, count]) => ({ año, count }));
-      };
-
-      const getInstituteDistribution = () => {
-        const instituteCounts = data.reduce((acc, row) => {
-          acc[row.instituto] = (acc[row.instituto] || 0) + 1;
-          return acc;
-        }, {});
-        return Object.entries(instituteCounts).map(([instituto, count]) => ({ instituto, count }));
-      };
-
-      const getAgeDistribution = () => {
-        const bins = [
-          { range: "18-25", min: 18, max: 25, count: 0 },
-          { range: "26-35", min: 26, max: 35, count: 0 },
-          { range: "36-45", min: 36, max: 45, count: 0 },
-          { range: "46-55", min: 46, max: 55, count: 0 },
-          { range: "56+", min: 56, max: 100, count: 0 }
-        ];
-        data.forEach(row => {
-          const age = row.edad;
-          const bin = bins.find(b => age >= b.min && age <= b.max);
-          if (bin) bin.count += 1;
-        });
-        return bins.filter(bin => bin.count > 0);
-      };
-
-      const totalStudents = data.length;
-      const uniqueCareers = [...new Set(data.map(row => row.carrera))].length;
-      const uniqueInstitutes = [...new Set(data.map(row => row.instituto))].length;
-      const averageAge = data.length > 0 ? (data.reduce((sum, row) => sum + row.edad, 0) / data.length).toFixed(1) : 0;
-
-      const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
-      // Render Chart.js bar chart for device preferences
-      useEffect(() => {
-        const ctx = document.getElementById('deviceChart')?.getContext('2d');
-        if (ctx) {
-          new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: ['Notebook', 'Celular', 'Papel'],
-              datasets: [{
-                label: 'Preferencia de Dispositivos',
-                data: [60, 25, 15], // Hypothetical percentages
-                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
-                borderColor: ['#1e40af', '#047857', '#b45309'],
-                borderWidth: 1
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  title: { display: true, text: 'Porcentaje (%)' }
-                },
-                x: {
-                  title: { display: true, text: 'Dispositivo' }
-                }
-              },
-              plugins: {
-                legend: { display: false },
-                tooltip: { backgroundColor: '#fff', titleColor: '#1a202c', bodyColor: '#4a5568', borderColor: '#e2e8f0', borderWidth: 1 }
-              }
-            }
-          });
-        }
-      }, [loading]);
-
-      if (loading) {
-        return (
-          <div className="text-center text-lg font-semibold text-gray-700">
-            Cargando datos...
-          </div>
-        );
-      }
+    // Componente Timeline
+    const Timeline = () => {
+      const events = [
+        { date: 'Dos semanas previas', desc: 'Inscripción vía Google Forms', icon: 'fa-file-alt' },
+        { date: '26 May', desc: 'Inicio relevamiento', icon: 'fa-play-circle' },
+        { date: '26 May - 6 Jun', desc: 'Duración: 5-10 días', icon: 'fa-clock' },
+        { date: '6 Jun', desc: 'Cierre', icon: 'fa-stop-circle' },
+      ];
 
       return (
-        <div className="card">
-          <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">
-            Panel de Estudiantes 2025
-          </h1>
+        <div className="relative my-8">
+          <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-blue-300"></div>
+          {events.map((event, index) => (
+            <div key={index} className={`flex items-center mb-8 ${index % 2 === 0 ? 'justify-start' : 'justify-end'} fade-in`}>
+              <div className={`w-5/12 ${index % 2 === 0 ? 'text-right pr-4' : 'text-left pl-4'}`}>
+                <h3 className="text-lg font-semibold text-blue-800">{event.date}</h3>
+                <p className="text-gray-600"><i className={`fa ${event.icon} mr-2`}></i>{event.desc}</p>
+              </div>
+              <div className="timeline-dot w-6 h-6 bg-blue-600 rounded-full border-4 border-white absolute left-1/2 transform -translate-x-1/2"></div>
+            </div>
+          ))}
+        </div>
+      );
+    };
 
-          <div className="card mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-3">Introducción</h2>
-            <p className="text-gray-600 text-base">
-              Desde el equipo Edutics de la Universidad Nacional de Villa María (UNVM), se llevó a cabo una consulta breve sobre el uso de tecnologías en contextos educativos. Edutics es un grupo de investigación que, desde el año 2007, estudia las relaciones entre educación, comunicación y socialidad en el marco de la cultura digital. La participación fue voluntaria y anónima, y los datos recolectados fueron utilizados exclusivamente con fines de investigación académica. El relevamiento se realizó durante el mes de mayo de 2025, mediante la conformación de grupos en la plataforma WhatsApp.
+    // Componente principal
+    const Presentation = () => {
+      // Datos para gráfico de preferencia de respuestas
+      const chartDataResponses = [
+        { name: 'Textuales', value: 95 },
+        { name: 'Audio', value: 5 },
+      ];
+
+      // Datos para gráfico de Pregunta 1 (Dispositivos preferidos)
+      const chartDataDevices = [
+        { name: 'Computadora', value: 60 },
+        { name: 'Celular', value: 25 },
+        { name: 'Fotocopias', value: 10 },
+        { name: 'Combinaciones', value: 5 },
+      ];
+      const COLORS = ['#4CAF50', '#2196F3', '#FFC107', '#F44336'];
+
+      return (
+        <div className="max-w-5xl mx-auto">
+          {/* Encabezado */}
+          <div className="text-center mb-12 fade-in">
+            <h1 className="text-4xl font-extrabold text-blue-900 mb-4">
+              Relevamiento UNVM 2025: Edutics
+            </h1>
+            <p className="text-lg text-gray-700">
+              Resumen de la metodología, desarrollo y respuestas estudiantiles
             </p>
           </div>
 
-          <div className="card mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Resumen</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="summary-card bg-blue-50 p-4 rounded-lg text-center">
-                <p className="text-lg font-medium text-blue-800">Total Estudiantes</p>
-                <p className="text-2xl font-bold">{totalStudents}</p>
-              </div>
-              <div className="summary-card bg-green-50 p-4 rounded-lg text-center">
-                <p className="text-lg font-medium text-green-800">Carreras Únicas</p>
-                <p className="text-2xl font-bold">{uniqueCareers}</p>
-              </div>
-              <div className="summary-card bg-yellow-50 p-4 rounded-lg text-center">
-                <p className="text-lg font-medium text-yellow-800">Institutos Únicos</p>
-                <p className="text-2xl font-bold">{uniqueInstitutes}</p>
-              </div>
-              <div className="summary-card bg-purple-50 p-4 rounded-lg text-center">
-                <p className="text-lg font-medium text-purple-800">Edad Promedio</p>
-                <p className="text-2xl font-bold">{averageAge}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Distribución por Carrera e Instituto</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="chart-container">
-                <h3 className="text-lg font-medium text-gray-700 mb-3">Por Carrera</h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart
-                    data={getCareerDistribution()}
-                    layout="vertical"
-                    margin={{ top: 10, right: 20, left: 100, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis type="number" fontSize={12} />
-                    <YAxis
-                      dataKey="carrera"
-                      type="category"
-                      fontSize={12}
-                      width={100}
-                      tick={{ fill: '#4a5568' }}
-                    />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px' }}
-                    />
-                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="chart-container">
-                <h3 className="text-lg font-medium text-gray-700 mb-3">Por Instituto</h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <PieChart>
-                    <Pie
-                      data={getInstituteDistribution()}
-                      dataKey="count"
-                      nameKey="instituto"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={{ fontSize: 12, fill: '#4a5568' }}
-                      animationDuration={800}
-                    >
-                      {getInstituteDistribution().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          <div className="card mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Distribución por Edad y Género</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="chart-container">
-                <h3 className="text-lg font-medium text-gray-700 mb-3">Por Edad</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={getAgeDistribution()}
-                      dataKey="count"
-                      nameKey="range"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={{ fontSize: 12, fill: '#4a5568' }}
-                      animationDuration={800}
-                    >
-                      {getAgeDistribution().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="chart-container">
-                <h3 className="text-lg font-medium text-gray-700 mb-3">Por Género</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={getGenderDistribution()}
-                      dataKey="count"
-                      nameKey="género"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={{ fontSize: 12, fill: '#4a5568' }}
-                      animationDuration={800}
-                    >
-                      {getGenderDistribution().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          <div className="card mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Distribución por Año de Estudio</h2>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={getYearDistribution()}
-                    dataKey="count"
-                    nameKey="año"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={{ fontSize: 12, fill: '#4a5568' }}
-                    animationDuration={800}
-                  >
-                    {getYearDistribution().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="card mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Respuestas Cualitativas</h2>
-            <p className="text-gray-600 text-base mb-4">
-              Nota: Las respuestas cualitativas no están incluidas en los datos proporcionados. A continuación, se mantienen las respuestas genéricas del panel anterior para mantener la estructura, con elementos visuales agregados para mejorar la presentación.
-            </p>
-            <div className="space-y-4">
-              <div className="qualitative-item">
-                <i className="fas fa-laptop qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">1. ¿Qué dispositivo usás más para estudiar? ¿Por qué?</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Mayoría: Notebook o computadora portátil, por su practicidad y mejor visualización.</li>
-                    <li>Algunos también usan: Celular y papel (impresiones, apuntes a mano).</li>
-                    <li>Motivos principales: Facilidad para leer, multitarea, preferencia visual.</li>
-                    <li className="callout">Caso particular: Héctor prefiere papel por comodidad, dificultades tecnológicas y generacionales.</li>
-                  </ul>
-                  <div className="chart-container mt-3" style={{ height: '200px' }}>
-                    <canvas id="deviceChart"></canvas>
-                  </div>
-                </div>
-              </div>
-              <div className="qualitative-item">
-                <i className="fas fa-wifi qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">2. ¿Tenés algún problema de conexión o acceso a dispositivos?</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Algunos sí: Cortes de luz/internet (zonas con infraestructura deficiente), problemas con el estado de los dispositivos.</li>
-                    <li>Otros no: Aunque han tenido fallas puntuales (rotura de notebook o celular), no lo consideran un problema frecuente.</li>
-                    <li>Situación compartida: Recursos tecnológicos compartidos en el hogar y dispositivos en mal estado.</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="qualitative-item">
-                <i className="fas fa-globe qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">3. ¿Para qué usás más internet fuera del estudio? ¿Cuánto tiempo le dedicás?</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Uso común: Redes sociales, noticias, música, entretenimiento (series/películas), trabajo, comunicación.</li>
-                    <li>Tiempo estimado: Varía entre 1 hora (entretenimiento) hasta 5-6 horas (uso general). Héctor dedica muchas horas por día (hasta la madrugada).</li>
-                    <li>Intereses específicos: Reparaciones, filosofía, psicología, vida vecinal (Héctor).</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="qualitative-item">
-                <i className="fas fa-book-open qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">4. ¿Preferís consumir contenidos breves o largos? ¿Por qué?</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Predominancia: Contenidos breves (reels, memes) por falta de tiempo y atención sostenida.</li>
-                    <li>Motivo: Prácticos, fáciles de consumir.</li>
-                    <li>Excepciones: Algunos también consumen contenidos largos, pero con menos frecuencia.</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="qualitative-item">
-                <i className="fas fa-mobile-alt qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">5. ¿Qué apps o plataformas te ayudan más para estudiar?</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Más utilizadas: Aula virtual, YouTube, buscadores (Google Académico), ChatGPT.</li>
-                    <li>Otros recursos: TikTok (para contenido educativo), herramientas de IA para redactar o resumir.</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="qualitative-item">
-                <i className="fas fa-graduation-cap qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">6. ¿Cómo aprendieron a usar las tecnologías que usan hoy?</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Formas de aprendizaje: Autodidacta, en la escuela secundaria, en la universidad, con ayuda de la familia o amistades.</li>
-                    <li>General: Combinación entre lo institucional y el autoaprendizaje.</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="qualitative-item">
-                <i className="fas fa-thumbs-up qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">7. ¿Experiencias positivas o negativas usando tecnologías para aprender?</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Positivas: Acceso a materiales online, aprendizaje autónomo, cursos internacionales (Coursera, edX), complementariedad con las clases.</li>
-                    <li>Negativas: Problemas de conexión, alto costo de mantenimiento, violencia digital (comentarios), impacto en vínculos presenciales.</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="qualitative-item">
-                <i className="fas fa-lightbulb qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">8. ¿Qué ideas o propuestas se les ocurren para usar mejor las tecnologías en la universidad?</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Integrar más IA (como ChatGPT o herramientas de transcripción).</li>
-                    <li>Crear espacios con acceso a computadoras compartidas (bibliotecas, centros de estudiantes).</li>
-                    <li>Usar la tecnología para debatir, crear y reflexionar (no solo consumir).</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="qualitative-item">
-                <i className="fab fa-whatsapp qualitative-icon"></i>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-700">Opinión sobre la experiencia del grupo focal por WhatsApp</h3>
-                  <ul className="list-disc list-inside text-gray-600 text-base">
-                    <li>Valoración general: Positiva, original.</li>
-                    <li>Sugerencias de mejora:
-                      <ul className="list-circle list-inside ml-4">
-                        <li>Cuidar la espontaneidad de las respuestas (influencia entre participantes).</li>
-                        <li>Establecer tiempos claros de apertura y cierre.</li>
-                        <li>Repetir el relevamiento al inicio y fin de la carrera para observar trayectorias.</li>
-                      </ul>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card mb-6 bg-yellow-50">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-3">Dato Interesante</h2>
-            <p className="text-gray-600 text-base">
-              La población estudiantil abarca un amplio rango de edades, de 19 a 70 años, destacando una mezcla diversa de estudiantes tradicionales y no tradicionales que persiguen la educación superior.
+          {/* Introducción */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 fade-in intro-content">
+            <h2 className="text-2xl font-bold text-blue-800 mb-4"><i className="fa fa-info-circle mr-2"></i>Introducción</h2>
+            <p>
+              Edutics es un grupo de investigación de la Universidad Nacional de Villa María (UNVM) que, desde el año 2007, estudia las relaciones entre educación, comunicación y socialidad en el marco de la cultura digital. Desde el equipo se llevó a cabo una consulta a estudiantes en el mes de mayo de 2025, mediante grupos de WhatsApp. La participación fue voluntaria y anónima. El relevamiento se realizó con estudiantes de 15 carreras de los tres Institutos de la UNVM: Básicas, Sociales y Humanas. Contó con la participación de 50 estudiantes.
             </p>
           </div>
 
-          <div className="card">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Conclusión</h2>
-            <p className="text-gray-600 text-base">
-              Este panel ofrece una visión integral de la población estudiantil, revelando tendencias clave en la elección de carreras, equilibrio de género y progresión. Gestión Educativa y Comunicación Social son los programas más populares, con una distribución equilibrada de género. El amplio rango de edades (19-70) subraya la inclusividad de la institución. Las respuestas cualitativas destacan el uso predominante de notebooks para estudiar, la preferencia por contenidos breves, y propuestas para integrar más IA y espacios tecnológicos. La experiencia del grupo focal por WhatsApp fue valorada positivamente, con sugerencias para mejorar la espontaneidad y temporalidad.
+          {/* Metodología */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 fade-in">
+            <h2 className="text-2xl font-bold text-blue-800 mb-4"><i className="fa fa-cogs mr-2"></i>Metodología</h2>
+            <ul className="list-disc list-inside text-gray-600 space-y-2">
+              <li><strong>Cuestionario</strong>: Diseñado en base a los objetivo de proyecto PICTO, con apoyo de IA para el diseño.</li>
+              <li><strong>Invitación</strong>: Google Forms vía docentes/estudiantes (correo y teléfono).</li>
+              <li><strong>Grupos WhatsApp</strong>: Enlace por email no fue efectivo; incorporados con número de teléfono tras 2 días de espera.</li>
+              <li><strong>Soporte</strong>: Un investigador por cada grupo, algunos con un segundo investigador de apoyo.</li>
+            </ul>
+          </div>
+
+          {/* Desarrollo */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 fade-in">
+            <h2 className="text-2xl font-bold text-blue-800 mb-4"><i className="fa fa-tasks mr-2"></i>Desarrollo</h2>
+            <ul className="list-disc list-inside text-gray-600 space-y-2">
+              <li><strong>Espera</strong>: 2 semanas entre inscripción e inicio.</li>
+              <li><strong>Respuestas</strong>: Opción de audio (transcrito con Pinpoint), pero 95% textuales.</li>
+              <li><strong>Registros</strong>: Copiados en texto con metadatos (tiempo, orden, imágenes).</li>
+              <li><strong>Duración</strong>: 5-10 días (26 May - 6 Jun), post-exámenes, adaptada por grupo.</li>
+            </ul>
+            <h3 className="text-lg font-semibold text-gray-800 mt-6 mb-4">Preferencia de Respuestas</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartDataResponses} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis label={{ value: '%', angle: -90, position: 'insideLeft' }} />
+                <Tooltip formatter={(value) => `${value}%`} />
+                <Bar dataKey="value" fill="#36A2EB" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Timeline */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 fade-in">
+            <h2 className="text-2xl font-bold text-blue-800 mb-4"><i className="fa fa-calendar mr-2"></i>Cronología</h2>
+            <Timeline />
+          </div>
+
+          {/* Observaciones */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 fade-in">
+            <h2 className="text-2xl font-bold text-blue-800 mb-4"><i className="fa fa-eye mr-2"></i>Observaciones Clave</h2>
+            <ul className="list-disc list-inside text-gray-600 space-y-2">
+              <li><strong>Interacción</strong>: Nula entre participantes; solo con docente.</li>
+              <li><strong>Feedback</strong>: Falta de claridad sobre ver respuestas de otros y duración.</li>
+              <li><strong>Diversidad</strong>: Carreras, edades y perfiles variados influyeron.</li>
+              <li><strong>Ritmo</strong>: Preferencia por respuestas rápidas o pausadas con menor intensidad.</li>
+            </ul>
+          </div>
+
+          {/* Resumen de Respuestas (HTML estático) */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 fade-in markdown-content">
+            <h2 className="text-2xl font-bold text-blue-800 mb-4"><i className="fa fa-file-text mr-2"></i>Resumen de Respuestas Estudiantiles</h2>
+            <p><em>Fecha y hora: 04:21 PM -03, Miércoles 11 de Junio de 2025</em></p>
+
+            <h2>📱 Pregunta 1: Dispositivo preferido para estudiar</h2>
+            <p>La mayoría de los estudiantes prefiere <strong>computadoras</strong> (portátiles o de escritorio) por sus pantallas grandes, facilidad para manejar múltiples recursos y menor distracción en comparación con los celulares. Los <strong>smartphones</strong> se usan para acceso rápido a materiales, especialmente en movimiento o en clase. Algunos, particularmente mayores o con acceso limitado a dispositivos, utilizan <strong>fotocopias</strong> para tomar notas y leer, destacando comodidad y menos fatiga visual. Se mencionaron desafíos como compartir una computadora entre varios familiares.</p>
+            <h3>Visualización de preferencias de dispositivos:</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={chartDataDevices} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                  {chartDataDevices.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `${value}%`} />
+              </PieChart>
+            </ResponsiveContainer>
+            <p><em>Nota</em>: Los porcentajes son estimados (60% computadora, 25% celular, 10% fotocopias, 5% combinaciones) basados en el resumen, ya que el documento no proporciona un conteo exacto.</p>
+
+            <h2>🌐 Pregunta 2: Problemas de conectividad y acceso a dispositivos</h2>
+            <p>Los problemas de conectividad varían según la ubicación. Muchos reportan internet estable en casa o la universidad, pero algunos enfrentan cortes de luz, señales Wi-Fi débiles (especialmente en áreas rurales o en la universidad) o acceso limitado a dispositivos (como compartir una computadora). Los <strong>datos móviles</strong> sirven como respaldo, pero pueden ser inestables o costosos. En la universidad, el Wi-Fi es lento o inestable en áreas concurridas como bibliotecas o aulas.</p>
+
+            <h2>🎧 Pregunta 3: Uso de internet fuera del estudio</h2>
+            <p>Fuera del estudio, los estudiantes usan internet para:</p>
+            <ul>
+              <li><strong>Redes sociales</strong> (Instagram, X, TikTok, WhatsApp).</li>
+              <li><strong>Entretenimiento</strong> (música, series, películas).</li>
+              <li><strong>Información</strong> (noticias, política).</li>
+            </ul>
+            <p>El uso diario varía de <strong>1 a 6 horas</strong>, con algunos reportando hasta 11 horas incluyendo comunicación y trabajo. La música (Spotify, YouTube) es común, y algunos usan internet para trabajo, pagos o hobbies como trading o videojuegos.</p>
+
+            <h2>📺 Pregunta 4: Preferencia por contenido corto o largo</h2>
+            <p>Las preferencias varían:</p>
+            <ul>
+              <li><strong>Contenido corto</strong> (reels, memes, TikTok) por limitaciones de tiempo o entretenimiento rápido.</li>
+              <li><strong>Contenido largo</strong> (libros, documentales, series) para aprendizaje profundo o ocio cuando hay tiempo.</li>
+            </ul>
+            <p>Algunos critican la falta de profundidad en contenidos cortos, pero los encuentran prácticos. Los <strong>libros impresos</strong> siguen siendo preferidos por algunos para lecturas académicas.</p>
+
+            <h2>🛠️ Pregunta 5: Apps/Plataformas para estudiar</h2>
+            <p>Las herramientas más usadas incluyen:</p>
+            <ul>
+              <li><strong>Aulas virtuales</strong> (Moodle, campus virtual UNVM) para materiales de curso.</li>
+              <li><strong>Google y Google Scholar</strong> para búsquedas rápidas.</li>
+              <li><strong>Herramientas de IA</strong> (ChatGPT, Gemini, DeepSeek) para resumir textos, aclarar conceptos o mejorar redacciones.</li>
+              <li><strong>YouTube</strong> para videos explicativos, especialmente en temas prácticos o complejos.</li>
+            </ul>
+            <p>Otros usan <strong>Google Drive</strong>, <strong>Canva</strong> y <strong>CmapTools</strong> para organización, presentaciones y trabajo colaborativo. Algunos destacaron la importancia de verificar la información generada por IA.</p>
+
+            <h2>🧠 Pregunta 6: Cómo se aprendieron las tecnologías</h2>
+            <p>La mayoría aprendió de forma <strong>autodidacta</strong> (prueba y error, tutoriales en YouTube o Google). También influyeron:</p>
+            <ul>
+              <li><strong>Cursos universitarios</strong> o talleres (p. ej., Excel, Canva).</li>
+              <li><strong>Escuela secundaria</strong>, amigos o familiares (especialmente generaciones jóvenes).</li>
+              <li><strong>Entorno laboral</strong> o capacitaciones profesionales.</li>
+            </ul>
+            <p>Algunos mencionaron que la pandemia impulsó el aprendizaje de herramientas virtuales.</p>
+
+            <h2>👍👎 Pregunta 7: Experiencias positivas y negativas con la tecnología</h2>
+            <h3>Positivas:</h3>
+            <ul>
+              <li>Acceso rápido a información, ahorro de tiempo y aprendizaje flexible (cursos virtuales, materiales digitales).</li>
+              <li>Herramientas de IA ayudan a resumir, aclarar conceptos y mejorar eficiencia.</li>
+              <li>Plataformas virtuales eliminan barreras geográficas.</li>
+              <li>Google Drive y otras herramientas facilitan organización y colaboración.</li>
+            </ul>
+            <h3>Negativas:</h3>
+            <ul>
+              <li>Problemas de conectividad (Wi-Fi inestable, cortes de luz).</li>
+              <li>La virtualidad puede ser impersonal, con menos interacción que clases presenciales.</li>
+              <li><strong>Distracciones</strong> (redes sociales) y <strong>desinformación</strong> (errores de IA).</li>
+              <li>Acceso limitado a dispositivos o infraestructura universitaria desactualizada.</li>
+            </ul>
+
+            <h2>💡 Pregunta 8: Propuestas para mejorar el uso de tecnología en la universidad</h2>
+            <p>Los estudiantes propusieron:</p>
+            <ul>
+              <li><strong>Mejorar el Wi-Fi</strong> universitario (cobertura y estabilidad).</li>
+              <li><strong>Capacitaciones</strong> en herramientas digitales (IA, Canva, Genially) y alfabetización digital.</li>
+              <li>Crear <strong>repositorios digitales</strong> con materiales de cursos anteriores.</li>
+              <li>Implementar <strong>clases híbridas</strong> con grabaciones para mayor flexibilidad.</li>
+              <li>Usar plataformas interactivas (quizzes, simulaciones, podcasts) para dinamizar el aprendizaje.</li>
+              <li>Aumentar <strong>tomacorrientes</strong> en aulas y ofrecer <strong>laboratorios de computadoras</strong> compartidos.</li>
+              <li>Mejorar interfaces de aulas virtuales y capacitar docentes en el uso de tecnología.</li>
+            </ul>          
+          </div>
+
+    {/* Conclusión y Recomendaciones */}
+          <div className="bg-blue-600 text-white rounded-lg shadow-lg p-6 mb-8 fade-in conclusion">
+            <h2 className="text-2xl font-bold mb-4"><i className="fa fa-check-circle mr-2"></i>Conclusión</h2>
+            <p>
+              El relevamiento fue efectivo, pero la falta de interacción y claridad inicial son áreas de mejora. La flexibilidad en la duración fue clave.
             </p>
+            <p>
+              Los estudiantes valoraron positivamente la experiencia de la encuesta, destacando el formato <strong>informal y conversacional</strong> vía WhatsApp, que resultó accesible y menos formal que cuestionarios tradicionales. Apreciaron reflexionar sobre el uso de tecnología y compartir experiencias con compañeros.
+            </p>
+            <p>
+              En general, la experiencia fue <strong>amena, relevante</strong> y permitió conectar con las perspectivas de otros estudiantes.
+            </p>
+            <h3 className="text-lg font-semibold mb-2">Recomendaciones</h3>
+            <ul className="list-disc list-inside space-y-3 py-2">
+              <li><i className="fa fa-bullhorn mr-2"></i>Definir expectativas y duración al inicio.</li>
+              <li><i className="fa fa-users mr-2"></i>Incentivar interacción grupal.</li>
+              <li><i className="fa fa-book mr-2"></i>Capacitar sobre uso de herramientas (ej., audio).</li>
+            </ul>
+          </div>
+
+          {/* Pie de página */}
+          <div className="text-center text-gray-600 text-sm fade-in">
+            <p>Relevamiento realizado del 26 de mayo al 6 de junio de 2025, UNVM</p>
           </div>
         </div>
       );
     };
 
+    // Renderizando el componente
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    root.render(<Presentation />);
   </script>
 </body>
 </html>
