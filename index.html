@@ -52,6 +52,7 @@
   <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chrono-node/1.3.11/chrono.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.15.0/Recharts.min.js"></script>
+  <script src="https://unpkg.com/wordcloud@1.2.2/src/wordcloud2.js"></script>
   <style>
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -86,15 +87,17 @@
   <div id="root" class="container mx-auto p-6 max-w-7xl"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     const App = () => {
       const [data, setData] = useState(null);
+      const [thesisData, setThesisData] = useState(null);
       const [loading, setLoading] = useState(true);
       const [selectedYear, setSelectedYear] = useState(null);
       const [tableData, setTableData] = useState([]);
       const [currentPage, setCurrentPage] = useState(1);
       const rowsPerPage = 25;
+      const canvasRef = useRef(null);
 
       useEffect(() => {
         Papa.parse(loadFileData("egresados_cruzados.csv"), {
@@ -103,9 +106,9 @@
           dynamicTyping: false,
           transformHeader: (header) => header.trim().replace(/^"|"$/g, ''),
           transform: (value, header) => {
-            let cleaned = value.trim().replace(/^"|"$/g, '');
+            let cleaned = value ? value.trim().replace(/^"|"$/g, '') : '';
             if (header === 'promedio') {
-              return parseFloat(cleaned.replace(',', '.'));
+              return cleaned ? parseFloat(cleaned.replace(',', '.')) : null;
             }
             if (header === 'fecha_ingreso' || header === 'fecha_egreso') {
               const parsedDate = chrono.parseDate(cleaned);
@@ -116,7 +119,7 @@
           complete: (results) => {
             const cleanedData = results.data.map(row => ({
               ...row,
-              gender: row['Certificado'].includes('LICENCIADA') ? 'Femenino' : 'Masculino',
+              gender: row['Certificado'] && row['Certificado'].includes('LICENCIADA') ? 'Femenino' : 'Masculino',
               duration: row['fecha_egreso'] && row['fecha_ingreso'] ? 
                 (row['fecha_egreso'].getFullYear() - row['fecha_ingreso'].getFullYear()) + 
                 (row['fecha_egreso'].getMonth() - row['fecha_ingreso'].getMonth()) / 12 : null
@@ -127,11 +130,241 @@
             setLoading(false);
           },
           error: (err) => {
-            console.error('Error al parsear CSV:', err);
+            console.error('Error al parsear CSV principal:', err);
             setLoading(false);
           }
         });
+
+        const newCsvContent = `C,Nº de Exp.,Nombre Alumno,Legajo,Título,Director
+,001/02,"Mussetta Paula",610,"El cap. Social en Arg.: exploraciones en torno a su composición.","Navarro"
+1,003/02,"Monti, Ileana",369,"La constitución de identidades en las protestas Agrarias del sur cordobés a través de la participación de los jóvenes de F.A.A. de Oncativo","Scribano"
+1,009/02,"Oliva, Alicia",1201,"La migración boliviana a partir del concepto de real. Estudio caso de VM y VN","Carbonetti"
+1,004/02,"Gassino, Javier",307,"La part. de los product. tamberos del este cord. en acciones de protesta del sector agrop. entre 97-99","Scribano"
+1,013/03,"Giletta, Matias",456,"Universidad Pública, sociedad, Estado y mercado en la Arg. de los años 90: la autonomía universitaria en la matriz neoliberal de las relaciones internacionales","Rodríguez Raúl"
+1,014/03,"Pescio, Amalia María",1131,"Migración boliviana en Villa María y Villa Nueva - Estudio sobre la estratificación y movilidad social.","Carbonetti"
+1,005/04,"Truccone, Damián Pablo",442,"Religiosas y prostitutas: redes, estrategias y reconocimiento","Pavcovich"
+1,022/04,"Aráoz, Nancy Myriam",242,"La problemática laboral docente en el contexto de la reforma educativa de Córdoba: El caso de los docentes reubicados del nivel medio en una escuela pública de gestión privada de Villa María.","Caracciolo"
+1,011/05,"Cañas, Andrés",2327,"Vecinos autoconvocados de Cba. Teoría, cultura e identidad en la construcción de los movimientos sociales durante la década de los 90 del Siglo XX en la ciudad de Cba.","Zilocchi"
+1,024/05,"Barbieri, Mariano Roberto",2732,"La ciudad según sus ghettos: configuración socioespacial de la desigualdad y representaciones sociales urbanas de los jóvenes en la ciudad de Córdoba.","Vagliente"
+1,025/05,"Rizzi, Franco Luis",4628,"Representaciones de futuro en los jóvenes de la ciudad de Cba. 2001-2005.","Scribano"
+1,043/06,"Rocco, Carlo Dante",873,"Combinación de trabajo familiar y trabajo asalariado en las unidades tamberas de producción","Sobrino"
+1,033/06,"Bruera, Leonardo",1948,"Los marcos de referencia de la acción colectiva de los productores lecheros de Córdoba","Scribano"
+1,029/05,"Varetto, Carlos",1617,"Transformaciones en el sistema de partidos de la ciudad de Cba.: el fenómeno del Partido Nuevo","Navarro"
+1,031/05,"Vergara, Gabriela del Valle",445,"Valoraciones sobre la desindustrialización en San Francisco. Un acercamiento a las construcciones ideológicas sobre los procesos socio-económicos","Scribano"
+1,001/06,"Drovetta, Raquel Inés",2124,"Organizaciones sociales en la puna jujeña en la década del noventa. El caso de la asociación de mujeres Warmi Sayajsunqo y la Comisión de Desocupados de la Quiaca","Carbonetti"
+1,054/06,"Balma, María Fernanda",252,"Ciudadanía y Educación: Habitus de ciudadanía en futuros docentes de EGB 1 y 2 de la ciudad de Villa María","Bonvillani"
+1,016/06,"Eynard, Martín",4629,"Las representaciones sociales del proceso de salud enfermedad: un estudio acerca de los diabéticos de la ciudad de Córdoba.","Vagliente"
+1,023/07,"Denardi, Luciana Emilia",5422,"Análisis del proyecto educativo de la escuela 'Héctor Valdivielso' a la luz de las categorías de Pierre Bourdieu","Pavcovich"
+1,025/07,"Simieli, Elisabet Silvina",1188,"Educación ¿Derecho o Privilegio? El caso de la ciudad de Villa Nueva, provincia de Córdoba, Argentina","Sobrino"
+1,027/07,"Machado, Graciela",2201,"Asistencia social","Rodríguez Raúl"
+1,002/08,"Tissera Aime, Erica",4466,"El suicidio en la ciudad de Córdoba","Alvarez, Mary"
+1,006/08,"Sarradell, Gustavo",431,"Una aproximación a familias con pobreza estructural en algunos barrios de Villa María y Villa Nueva y sus estrategias de supervivencia.","Alvarez, Mary"
+1,016/08,"Zanotti, Agustín",6263,"Representaciones del trabajo en Jóvenes de sectores populares: Trabajo, consumo, valoraciones en juego, trayectorias y prácticas asociadas","Pavcovich"
+1,031/08,"Aimar, Lucas",4244,"El Tampierazo de San Francisco (1973). Redes de conflicto e identidad colectiva","Scribano"
+1,033/08,"Cuevas, Rocío",2228,"Tatuaje Urbano. El graffitti contemporáneo como fenómeno social de expresión discursiva en Villa María","Martínez"
+1,035/08,"Giannone, Gabriel",3916,"El cuerpo del ciruja. Vivencialidad corporal en el trabajo de recuperación de desechos","Scribano"
+1,003/09,"Scauso, Marcos",5648,"Un análisis de las lógicas de las prácticas sociales de los inmigrantes bolivianos en Villa María y Villa Nueva","Rodríguez"
+1,009/09,"Decándido, Erika",7009,"Lo simbólico, lo político y lo social. Su confluencia en las significaciones y valoraciones sobre la experiencia colectiva en APENOC","Monje"
+1,015/09,"Balderramas, Mariel",4469,"Subjetividad y espacio en los barrios-ciudad de Córdoba ¿Nuevas formas de marginalidad?","Scarponetti"
+1,017/09,"Alvites Baiadera, Angélica",7360,"Migración, pobreza y redes sociales: prácticas y representaciones en migrantes peruanas residentes en Córdoba","Pavcovich"
+1,027/09,"Bertolino, M Florencia",8094,"La situación de los adolescentes y sus trayectorias educativas","Alvarez, Mary"
+1,040/09,"Rodríguez, Sergio",5122,"Determinantes sociales de la desigualdad educativa en los alumnos de Nivel Primario de la Provincia de Córdoba","Alvarez, Mary"
+1,045/09,"Delgado, M. Florencia",5199,"El trabajo como elemento socializador en un contexto de precarización laboral y autogestión. El caso de la Cooperativa 7 de febrero","Rodríguez"
+1,053/09,"Mujica, Melina",2610,"Las expectativas laborales de los estudiantes avanzados de la Licenciatura en Sociología de la UNVM","Fernícola, M"
+1,054/09,"Ambort, Matilde",5293,"Trabajo hegemónico de fundamentación sobre políticas sociales. Análisis de caso: Plan familias por la inclusión social. Programa Nacional de Seguridad Alimenticia","Martínez"
+1,056/09,"García, Mónica",5420,"Algunos factores que influyen en las conductas sexuales y reproductivas de los adolescentes del ciclo polimodal en escuelas laicas y confesionales","Alvarez, Mary"
+1,056/09,"Rodríguez, Analía",3992,"Algunos factores que influyen en las conductas sexuales y reproductivas de los adolescentes del ciclo polimodal en escuelas laicas y confesionales","Alvarez, Mary"
+1,002/10,"Brunis, Lucrecia",5990,"Educación popular en contextos de pobreza. La experiencia del Ámbito Joven del Centro Educativo de La Salle, Malvinas Argentinas","Pavcovich"
+1,002/10,"González, Marilina",6002,"Educación popular en contextos de pobreza. La experiencia del Ámbito Joven del Centro Educativo de La Salle, Malvinas Argentinas","Pavcovich"
+1,016/10,"Herrera, Hernando",4023,"Tipos de trabajos con residuos: Una mirada fenomenológica","Rodríguez, R"
+1,017/10,"Llorens, María Monserrat",8105,"Un abordaje de prácticas educativas populares desde la teoría de Pierre Bourdieu","Pavcovich"
+1,017/10,"Pruneda Paz, Lucía",7339,"Un abordaje de prácticas educativas populares desde la teoría de Pierre Bourdieu","Pavcovich"
+1,021/10,"Zurlo, Julia Mariana",4600,"Anudando pasado - presente - futuro: Cómo significan/construyen su proyecto de vida un grupo de jóvenes de la zona Río Segundo - Pilar (Córdoba)","Bonvillani"
+1,034/10,"Peplo, Fernando",7608,"La presentación de la identidad sexo-genérica en jóvenes gays (25-30 años) en la ciudad de Villa María. Algunas consecuencias sociales","Mattio"
+1,035/10,"Cena, Rebeca",8051,"Políticas sociales post emergencia nacional: continuidades y rupturas","Scribano"
+1,036/10,"Assusa, Gonzalo",8881,"Lo popular en el 'nuevo cine argentino': una mirada desde el consumo","Sgammini"
+1,041/10,"Díaz Llorente, Federico",3930,"Emociones y conflictividad social. Un acercamiento al caso de los trabajadores de 'El diario del Sur de Córdoba'","Scribano"
+1,044/10,"Bertone, Julia",5155,"La mercantilización de lo simbólico: el gusto gastronómico y las prácticas asociadas a la Alta Cocina en la ciudad de Córdoba como forma de distinción y diferenciación","Scribano"
+1,046/10,"Bodrero, Mercedes",5188,"Mujeres artesanas y economía doméstica. El caso de las comunidades rurales de origen mapuche del noroeste de Chubut","Preda"
+1,011/11,"Arévalo, Luis",6559,"Los jóvenes de la esquina. Los nuevos escenarios de sociabilidad juvenil: expresión de un conflicto social y generacional en los contextos de pobreza en la ciudad de Córdoba","Grasso"
+1,019/11,"Ghione, Pablo",6134,"Historia e Identidad barrial en Las Playas. Efectos de territorio","Pavcovich"
+1,020/11,"Surghi, Mauro",6229,"",""
+1,027/11,"Cabrera, Nicolás",8873,"Identidades violentas. Un estudio sobre la violencia como dimensión identitaria de la cultura popular en el fútbol cordobés","Zucal"
+1,028/11,"Orpianesi, Natalia",6245,"","Pavcovich"
+1,030/11,"Hernández, Andrés",8914,"Identidad/es y uso/s de la fuerza en contextos escolares - una aproximación de las variantes en el marco del estudiantazo en la ciudad de Córdoba","Miguez"
+1,035/11,"Barroso, María Sofía",816,"Un abordaje del tango en Villa María: la constitución del campo de la música y la danza de tango en los últimos 10 años. Tango-danza: Un abordaje de las prácticas del campo del baile en Villa María en los últimos años.","Siragusa"
+1,040/11,"Cantero, Emanuel",9091,"Ciudad de Resistencia: discursos e imaginarios sociales en torno al origen de su nombre y su expresión en la obra teatral Resistiendo en Resistencia.","Trucco"
+1,051/11,"Peano, Alejandra",5339,"Estructuración de la experiencia y vivencionalidad corporal de los jóvenes de sectores populares en contexto de represión policial. Villa María, 2008-2010.","Boito"
+1,073/11,"Miguel, Carla",6618,"Las representaciones sociales acerca del poder en la escuela, según los jóvenes escolarizados en el nivel medio.","Paredes, S"
+1,075/11,"Chiavassa, Patricia","","Representaciones sociales de la maternidad en mujeres jóvenes de clase media urbana. El caso de las estudiantes universitarias de Villa María","Vaggione"
+1,013/12,"Toledo, Olga","","Inserción laboral de los jóvenes egresados de los colegios secundarios. El caso del IPEM Nº 156 José Manuel Estrada de la ciudad de Río Segundo.","Roitman"
+1,014/12,"Holgado, María Luz","","","M J. Magliano"
+2,015/12,"Molina - Passini","","","Scarponetti"
+1,027/12,"Barrio, Paola",8239,"Ruidos de tambores resuenan en el carnaval. Aproximaciones a las prácticas de resistencia desde los estudios de la cultura popular y la sociología de los cuerpos en el caso del carnaval de la ciudad de Laboulaye.","Monje"
+1,035/12,"García, Noelia",7929,"El cuerpo de quienes danzan. Una sociología de la experiencia artística y corporal en la danza contemporánea","Mora, Ana"
+1,036/12,"Miret, Mariana",7960,"Representaciones y prácticas de agentes institucionales sobre adolescentes bajo protección del Estado. Un estudio de caso: el Centro Socio - Educativo y Laboral 'Proteger'.","Flores, M. E."
+1,069/12,"Altamirano, Yanina",5024,"UNIVERSIDAD OBRERA NACIONAL: ORIGEN DE UNA EXPERIENCIA RUPTURISTA EN LA EDUCACIÓN ARGENTINA","Galarza"
+2,003/13,"Scandogliero",7357,"Piedra libre para todos mis compañeros: Educación popular en espacios expresivos y artísticos.","Pavcovich"
+2,003/13,"Tescione",7358,"Piedra libre para todos mis compañeros: Educación popular en espacios expresivos y artísticos.","Pavcovich"
+2,033/13,"Machado, Gabriela",7993,"Las relaciones de trabajo en la construcción de la obra pública: El caso del Nuevo Hospital Pasteur de Villa María","Roitman"
+2,033/13,"Torres, Lucas",10404,"Las relaciones de trabajo en la construcción de la obra pública: El caso del Nuevo Hospital Pasteur de Villa María","Roitman"
+1,056/13,"Balderramos, Dina",244,"¿Interés o Necesidad? Exploración de los sentidos otorgados a la formación en boxeo de jóvenes en la ciudad de Villa María","Scarponetti"
+2,065/13,"Maggi, Florencia",11572,"Proceso de identificación de las mujeres de origen boliviano que residen en Barrio Nuestro Hogar III de la ciudad de Córdoba.","Zilocchi"
+2,065/13,"Trabalón, Carina",6549,"Proceso de identificación de las mujeres de origen boliviano que residen en Barrio Nuestro Hogar III de la ciudad de Córdoba.","Zilocchi"
+1,024/14,"Fatyass, Rocío",11234,"Cartografía de una escuela 'de' sectores populares: procesos de transmisión del capital escolar","Pavcovich"
+1,032/14,"Arana, Juan Agustín",10277,"Tecnologías, apropiación social y aprendizajes: el programa Conectar Igualdad y su implementación en una escuela de Villa María.","Zanotti, Agustín"
+1,057/14,"Sigotto, Carla",2203,"La percepción de salud y enfermedad de los aborígenes Toba y Wichi del impenetrable chaqueño en el siglo XXI. Sociología de la salud desde una mirada antropológica.","Camaño"
+2,009/15,"Bazán, Luis",12178,"La configuración de las relaciones sindicales: el caso de Luz y Fuerza Córdoba (2002 – 2014)","Roitman"
+2,009/15,"Bazán, Juan",12179,"La configuración de las relaciones sindicales: el caso de Luz y Fuerza Córdoba (2002 – 2014)","Roitman"
+1,027/15,"Cuenca, Valeria",8760,"Ley de Bosques: Disputas por el territorio y los modelos de desarrollo posibles.","Alvarez, Mary"
+1,034/15,"Rodriguez, Florencia",11768,"Las mujeres en la policía de la Provincia de Córdoba. Un abordaje de las trayectorias sociolaborales de las jefas policiales desde una perspectiva de género.","Carbajo, Laura Sánchez"
+1,041/15,"Romero, Isabel",12184,"Derivas de los Conflictos en torno al espacio urbano en Barrio Alberdi - Ciudad de Córdoba","Gonnet, Juan"
+1,064/15,"Peñarrieta, Gimena",9313,"Conflictos, identidades y expresividades. Las acciones colectivas en 'Las Juanas', Villa María (2008 - 2015)","Vergara, Gabriela, Gandía, Claudia"
+1,068/15,"Frank, Juan Andrés",10535,"Las estrategias socio-productivas de los productores lecheros la cuenca láctea de Villa María en los años 2003-2013.","Roitman"
+1,074/15,"Monti, Daiana Ailen",12513,"Puntos de vista de agentes estatales municipales sobre jóvenes adolescentes de un barrio periférico de la ciudad de Villa María","Pavcovich"
+1,001/16,"Solans, María Inés",13364,"La Voz del Interior y el autocuartelamiento policial cordobés de 2013. Una aproximación a las prácticas periodísticas en situación de crisis.","Carbajo, Agustín Zanotti"
+1,014/16,"Remondetti, Lucila",,"Políticas culturales en contextos educativos: Experiencias en el nivel medio de la localidad de Pozo del Molle (2018-2019).","Gudiño, Daiana Monti"
+1,029/19,"Monteverde, Francisco",18498,"Pelota dividida: Identificaciones y relatos en las 'hinchadas' de fútbol en Monte Buey","Carbajo"
+1,040/19,"Cerón, Andrés",9354,"Empresas Multinacionales en contextos locales: el caso Saputo en la trama láctea Villa María.","Panero, M"
+2,047/19,"Ferreyra, Daniela",19064,"SALIR A LA CALLE Las estrategias laborales de las mujeres trans. El caso de Villa María en la actualidad","Giletta"
+2,047/19,"Machado, Julio César",16311,"SALIR A LA CALLE Las estrategias laborales de las mujeres trans. El caso de Villa María en la actualidad","Giletta"
+1,048/19,"Spinelli, Mariano","","Acciones colectivas y prácticas organizativas: la actividad de la Mesa por la Soberanía Alimentaria de la ciudad de Villa María. Año 2019","Aimar"
+1,053/19,"López, María Candela",19012,"Alteridades subalternas: Lo 'Indígena' en los procesos de Patrimonialización cultural en Valcheta (Provincia de Río Negro, Argentina).","Pérez Zavala, Gili, M. L."
+1,002/20,"Rodríguez, Sebastián",458,"Aproximaciones al concepto de clases sociales: Una revisita a los aportes de Marx, Durkheim y Bourdieu","Grasso"
+2,041/20,"Lescano, Franco",16390,"Infancias y religión. Experiencias de niños y niñas de sectores populares vinculadas a una escuela bíblica pentecostal de un barrio periférico de Villa María","Pavcovich"
+2,041/20,"Monteverde, Matías",18499,"Infancias y religión. Experiencias de niños y niñas de sectores populares vinculadas a una escuela bíblica pentecostal de un barrio periférico de Villa María","Pavcovich"
+1,067/20,"Bearzotti, Luis Alfredo",11250,"Modos de uso y Apropiación de TICs en estudiantes del Programa de Alfabetización y Educación Básica de Jóvenes y Adultos/as","Grasso"
+1,074/20,"Del Corro, Tomás",21889,"Tecnología y transformaciones en el proceso de trabajo: Tambos de la cuenca Villa María (2010-2020)","Lisdero"
+1,001/21,"Truccone, Carla",21807,"Prácticas y sentidos en la construcción de la (in)seguridad como problema social asociada a los jóvenes de un barrio periférico de Villa María","Bover, Pavcovich"
+2,003/21,"Pinto, Carmín Rocío",27571,"Representaciones sociales sobre la población boliviana en Argentina. El caso de las noticias en los medios digitales Villa María Vivo y Villa María Ya y los comentarios en sus páginas de Facebook","Ortiz, Claudia"
+2,003/21,"Garelli Gaido, Azul",27172,"Representaciones sociales sobre la población boliviana en Argentina. El caso de las noticias en los medios digitales Villa María Vivo y Villa María Ya y los comentarios en sus páginas de Facebook","Ortiz, Claudia"
+1,009/21,"Basualdo, Gastón",18880,"La Cultura Política Libertaria en Argentina (1870-1930)","Giletta"
+1,017/21,"Lunari, Manuel",16111,"Entre la consagración y el under: La gestión cultural en Villa María, 2010-2020","Virginia Ventura, Frank"
+1,056/21,"Pelloli, Ana",31551,"QUEREMOS DECIR Ser ingresante de la escuela secundaria en Oliva en tiempos de pandemia","Mellano, Silvia"
+1,001/22,"Rúa, Agustina",18465,"No nos juntamos a jugar a la canasta. Subjetividad, sentidos y emociones de activistas acompañantes de abortos","Drovetta"
+1,003/22,"Wolff, Madeleine",9642,"Mujeres indígenas, artesanía y extractivismo en el chaco salteño, Argentina (2017-2022). Tramas para pensar el buen vivir en el mundo contemporáneo.","Pérez Zavala"
+1,046/22,"Costantino, Joaquín",34592,"Una sociedad que habla en la agonía. Significaciones prevalecientes de la muerte y situación de las personas agonizantes en la ciudad de Villa María","Giletta"
+1,055/23,"Barbero, Julian",21772,"Vivir para comunicar o comunicar para sobrevivir","Roitman"
+1,006/16,"Farias Wagner, Mariana",15042,"Reorganización de área de gestión en ONG 'Centro Moze'. Córdoba 2016","Alvarez"
+1,003/17,"Mogila, Patricio",14822,"Entre la política, el mercado y la academia: los consultores políticos. Configuraciones de su identidad profesional en la ciudad de Córdoba.","Gonnet, Juan"
+1,004/17,"Paesani, Lucresia",14889,"Mujeres poniendo el cuerpo, por una vida libre de violencia. Conformación de un grupo de teatro comunitario con mujeres en situación de violencia de género de la comunidad de la Granja.","Alessio Angela, Mauvesin, Maria"
+1,005/17,"Cutro Dumas, Camila",13132,"La producción de subjetividad en el colectivo de trabajadores de la 'Fábrica de aviones Brigadier San Martín' de la ciudad de Córdoba. 2009-2016.","Roitman Susana, Falvo Marina"
+1,006/17,"Zanini, Maria Paula",13126,"Narrativas Corporales en la fiesta de la Virgen de Urkupiña: experiencias colectivas a través de la danza.","Pedro Lisdero, Victoria D'hers"
+1,007/17,"Liberal, Camila",11775,"Mujeres madres y las terapias de cuidado de la salud. El caso de la Comunidad wichí en la Cuenca del Río Bermejo, Departamento de San Martín, Salta, en la actualidad.","Raquel Drovetta"
+1,008/17,"Falconier, Francisco Eduardo",16451,"Cuerpos, sensibilidades y acción colectiva. Estudio de la estructuración social de los Saqueos en la Ciudad de Córdoba (diciembre de 2013)","Pedro Lisdero"
+1,009/17,"Alvarez, Maria Soledad",13204,"Propuesta de un programa de prevención de consumo abusivo de alcohol destinado a alumnos de segundo y sexto año del Instituto Nuestra Señora, Córdoba, 2017","Alvarez, Mary"
+1,012/17,"Goldin, Deborah Judith",16435,"Procesos de identificación policiales y racionalidades políticas. Un análisis del personal subalterno de la Policía de Córdoba (2013-2017)","Carbajo, Mariana, Reynares"
+1,013/17,"Castro, Natalia Sofia",17178,"Cuando habla el comisariado: Representaciones en torno a la prevención del delito entre los Oficiales Jefes de la Policía de la Provincia de Córdoba (2015 – 2017)","Carbajo, Mariana, Zanotti A"
+1,002/18,"Pieroni, Tomas Nelio",14887,"Identidad(es) en torno a la economía popular: la experiencia de la CTEP cordobesa en los territorios y en las calles","Serra Hugo, Gonzalez I"
+1,006/18,"Castillo, Jorge Rodrigo",17172,"Transformaciones en las relaciones laborales en el trabajo a domicilio","Roitman Susana"
+1,009/18,"Huerta, Ignacio Javier",10592,"Canciones, instrumentos y amigos. Organización del trabajo artístico en la producción musical contemporánea de Córdoba","Boix Ornela"
+1,010/18,"Allione Riba, Maria Guadalupe",18952,"La cruzada moral antiprostitución: reflexiones en torno al discurso abolicionista de las instituciones antitrata de la provincia de Córdoba","Matias Gileta"
+1,011/18,"Gonzalez, Noelia Vanina",18986,"Prácticas de consumo como signo de distinción. El caso de los jóvenes en bares de barrio Güemes durante el periodo 2017 - 2018","Zanotti Agustin"
+1,012/18,"Torres, Mariel Denise",10599,"Sentidos y prácticas sobre el trabajo docente en maestros de nivel primario de Córdoba (2018 - 2020)","Alvarez Maria, Schaigorodsky Emilia"
+1,013/18,"Martinez, Maria Candelaria",18989,"De España a la Argentina. Experiencias de reinserción social y laboral de migrantes argentinos retornados (2008 - 2018)","Ambort Matilde, Rivero Patricia"
+1,015/18,"Cruz, Facundo",15151,"Entrega Infinita. El caso Gama S.A. en el Corredor Colón de la ciudad de Córdoba. Una vía para la investigación de las empresas desarrollistas inmobiliarias.","Sisterna Carolina, Roitman S"
+1,002/19,"Rubin, Paloma",18600,"Feminismos en el espectáculo: movimientos sociales mediática","Zanotti Agustin"
+2,006/19,"Ambroggio, Joaquin",22255,"La construcción hegemónica de las entidades técnicas del agro: el caso CREA Región Córdoba Norte","Decandido, Erika, Schaigorodsky"
+2,006/19,"Torres Castaños, Enrique",22602,"La construcción hegemónica de las entidades técnicas del agro: el caso CREA Región Córdoba Norte","Decandido, Erika, Schaigorodsky"
+1,012/19,"Peralta, Santiago",16898,"Inseguridad y Territorio - Espacialización del Miedo e Identificación de Sujetos Peligrosos en Jóvenes Estudiantes de Nueva Córdoba","Carbajo Mariano, Decandido Erika"
+1,013/19,"Castro, Julian Ariel",16902,"Una cuestión de péndulos. Tensiones y disputas en el campo de las políticas de seguridad en la Provincia de Córdoba, 2015-2017.","Assusa Gonzalo, Cabrera Nicolas"
+1,017/19,"Ochoa, Lucila",10604,"Piedra libre para todos mis compañeros: caminos lectores que instituyen infancia","Pavcovich Paula"
+1,002/20,"Araoz, Veronica",19599,"Feministas pactando en la Red: el caso de Feministas Trabajando Córdoba","Zanotti Agustin"
+2,007/20,"Broll, Catalina",22635,"Prácticas de Institución de infancia de lxs educadorxs populares del Cepia","Pavcovich Paula"
+2,007/20,"Jofre Mafrini, Ana Carla",24933,"Prácticas de Institución de infancia de lxs educadorxs populares del Cepia","Pavcovich Paula"
+1,009/20,"Biondini, Valentina",23932,"Género, migración y salud: los derechos sexuales y (no) reproductivos en mujeres peruanas (Córdoba, 2019-2020)","Gudiño Pablo, Perrig Sara"
+2,010/20,"Ludueña Galvan, Lucia",19298,"Operarios en la construcción del mercado frutihortícola de Córdoba. Un abordaje sociológico del proceso de formación de precios en los mercados locales","Serra Hugo, Schaigorodsky Emilia"
+2,010/20,"Ruderman, Sofia",16854,"Operarios en la construcción del mercado frutihortícola de Córdoba. Un abordaje sociológico del proceso de formación de precios en los mercados locales","Serra Hugo, Schaigorodsky Emilia"
+1,011/20,"Alvarez, Maria Ines",24620,"Modos de organización y construcción de subjetividades en prácticas barriales. La experiencia de la Escuela de Fútbol Mixto La Canchita de Barrio Marechal, Córdoba","Carbajo Mariana, Cabrera Nicolas"
+2,012/20,"Clara, Capdevila",16910,"Jóvenes trabajadores de la economía social: trayectorias, sentidos y proyectos profesionales en la ciudad de Córdoba en el 2020","Suarez Gabriel, Schaigorodsky Emilia"
+2,012/20,"Sanchez, Manuel",16830,"Jóvenes trabajadores de la economía social: trayectorias, sentidos y proyectos profesionales en la ciudad de Córdoba en el 2020","Suarez Gabriel, Schaigorodsky Emilia"
+1,013/20,"Santa Cruz, Paulina",25177,"Dimensiones morales y simbólicas de la cuestión fiscal. Percepciones en torno a los impuestos en los integrantes de la campaña empresaria 'Córdoba acá estamos' en el marco de la pandemia por Covid 19","Schaigorodsky Emilia, Serra Hugo"
+1,014/20,"Sampallo, Josefina",18991,"Apropiación de TIC en la Municipalidad de Río Ceballos. Una lectura de gestión municipal en clave sociológica","Rodriguez Malvina, Serra Hugo"
+1,015/20,"Scavuzzo, Rosa Maria",22521,"Un Proyecto y estrategias inclusivas a partir de la aplicación de la Guía para valorar la Inclusión - Construcción Participativa - en el Nivel Secundario de la escuela IPEM Nº 40 - Deodoro Roca en la Ciudad de Córdoba - Argentina","Ferreyra Horacio, Blanas Georgia"
+1,001/21,"Sussini, Julieta Maria",18992,"Accionar en Córdoba, un abordaje sociológico de la performance artística cordobesa","Boix Ornella, Decandido Erika"
+2,002/21,"Diaz, Paula",28181,"Lógicas identitarias de las jugadoras de fútbol del Club Atlético Belgrano de Córdoba del año 2020 - 2021","Drovetta Raquel, Cabrera Nicolas"
+2,002/21,"Garcia, Agustina",28058,"Lógicas identitarias de las jugadoras de fútbol del Club Atlético Belgrano de Córdoba del año 2020 - 2021","Drovetta Raquel, Cabrera Nicolas"
+1,003/21,"Artico Fenoglio, Yohana",24814,"'Al macho, escracho'. Percepciones en torno a la violencia y la justicia de las mujeres universitarias de Córdoba (2017-2018)","Drovetta Raquel, Carbajo Mariana"
+1,004/21,"De Rosas, Malena Alejandra",27995,"Participación social en salud. El caso del Hospital Príncipe de Asturias en Villa el Libertador, Ciudad de Córdoba, Argentina, 2011-2021.","Drovetta Raquel, Schaigorodsky Emilia"
+2,005/21,"Fernandez, Maria Cecilia",13387,"Hacia una regulación democrática de ferias de la economía popular en Alta Gracia: experiencia colectiva de lo común.","Serra Hugo"
+2,005/21,"Loyola Keitman, Francisco Gaspar",16875,"Hacia una regulación democrática de ferias de la economía popular en Alta Gracia: experiencia colectiva de lo común.","Serra Hugo"
+1,007/21,"Buniva, Nicolas Joaquin",24886,"Los sentidos del emprender: el caso del Ecosistema Emprendedor de la ciudad de Córdoba y la identidad emprendedora dentro del mundo del trabajo.","Schaigorodsky Emilia"
+2,008/21,"Loza, Micaela",24269,"Representaciones identitarias y estrategias de vinculación territorial del grupo juvenil de la iglesia evangélica 'Centro Familiar Cristiano'","Arevalos Luis, Chain Romina"
+2,008/21,"Ulacco, Pilar",25370,"Representaciones identitarias y estrategias de vinculación territorial del grupo juvenil de la iglesia evangélica 'Centro Familiar Cristiano'","Arevalos Luis, Chain Romina"
+1,009/21,"Falivene Fernandez, Paula Melisa",19256,"Prácticas sexuales en relación a las estrategias de no reproducción de varones jóvenes de 18 a 25 años, en Ciudad de Córdoba en el año 2021-2022.","Eynard Martin, Candellero Vicente"
+1,010/21,"Bonafe, Pedro",27782,"Centro de Planificación Participativa Villa Allende","Carbajo Mariana, Abroggio Joaquin"
+1,001/22,"Lopez, Maria Eugenia",30505,"Escuela y D.E.A: Repercusiones de las D.E.A en las interacciones de los niños de segundo ciclo del nivel primario","Ferreyra Horacio, Perez Andrada Monica"
+1,002/22,"Machado Terreno, Agustina",19190,"Adaptación del proyecto 'Comunidad Hip-Hop' (UEPC) al contexto de educación virtual para su efectiva articulación con la comunidad educativa.","Zanotti Agustin, Zanini Maria Paula"
+2,004/22,"Alva, Solana Maria",31171,"Sensibilizando el espacio: estetización y seguridad en Barrio Güemes","Carbajo Mariana, Loza Gimena"
+2,004/22,"Rolotti, Martina Paz",31152,"Sensibilizando el espacio: estetización y seguridad en Barrio Güemes","Carbajo Mariana, Loza Gimena"
+1,005/22,"Heredia Carrizo, Hernan Agustin",16869,"La Resistencia Peronista en Córdoba entre 1955 y 1960: un análisis de las vivencias de sus participantes","Reynares Juan"
+1,008/22,"Chaer, Ana Laura",28184,"Impacto de la legalización del cannabis para uso medicinal en usuarixs de la Ciudad de Córdoba","Decandido, Allione Riva"
+2,009/22,"Ayen, Valentina",30570,"La producción socio-estatal sobre el problema del empleo juvenil a través del programa Te sumo en la Agencia Territorial Córdoba","Hernandez Andres"
+2,009/22,"Guarrera, Melanie",31378,"La producción socio-estatal sobre el problema del empleo juvenil a través del programa Te sumo en la Agencia Territorial Córdoba","Hernandez Andres"
+1,010/22,"Zeballos, Malena",31202,"Política inflamable. Discursos y prácticas políticas en una Brigada Forestal de Sierras Chicas","Assusa Gonzalo"
+2,012/22,"Lopez, Maria Sol",28177,"Cuando el gatillo mide en likes. Un acercamiento a los casos de Joaquín Paredes y Blas Correas.","Carbajo Mariana, Goldin Deborah"
+2,012/22,"Odello, Matias Gustavo",27748,"Cuando el gatillo mide en likes. Un acercamiento a los casos de Joaquín Paredes y Blas Correas.","Carbajo Mariana, Goldin Deborah"
+1,014/22,"Gonzalez, Tania Fernanda",22296,"Acción Colectiva en torno al servicio de estacionamiento medido y controlado en la Ciudad de Córdoba.","Lisdero Pedro, Falconier Francisco"
+2,001/23,"Rizzo, Juan Pablo",34644,"Un deporte de caballeros: identidad en jóvenes golfistas de la Zona Metropolitana de Córdoba.","Schaigorodsky Emilia"
+2,001/23,"Vale Juriol, Diego",33269,"Un deporte de caballeros: identidad en jóvenes golfistas de la Zona Metropolitana de Córdoba.","Schaigorodsky Emilia"
+1,005/23,"Gutierrez, Tobias Manuel",16816,"Redes de actores socio-políticos en la implementación de políticas culturales: el caso de las bibliotecas populares en la Provincia de Córdoba, 2015-2022.","Schaigorodsky Emilia"
+186,,,,,"`;
+
+        Papa.parse(newCsvContent, {
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: false,
+          transformHeader: (header) => header.trim().replace(/^"|"$/g, ''),
+          transform: (value) => {
+            let cleaned = value ? value.trim().replace(/^"|"$/g, '').replace(/`/g, "'") : '';
+            return cleaned;
+          },
+          complete: (results) => {
+            const cleanedThesisData = results.data.map(row => ({
+              ...row,
+              'Nombre Alumno': row['Nombre Alumno'] || '',
+              'Legajo': row['Legajo'] || '',
+              'Título': row['Título'] || '',
+              'Director': row['Director'] || ''
+            }));
+            setThesisData(cleanedThesisData);
+          },
+          error: (err) => {
+            console.error('Error al parsear CSV de tesis:', err);
+          }
+        });
       }, []);
+
+      useEffect(() => {
+        if (thesisData && canvasRef.current) {
+          const stopwords = ['a', 'de', 'la', 'en', 'el', 'los', 'las', 'del', 'y', 'una', 'un', 'para', 'con', 'por', 'que', 'como', 'al', 'es', 'su', 'los', 'las', 'se', 'no', 'es', 'por', 'las', 'un', 'una', 'con', 'para', 'su', 'del', 'al', 'los', 'las', 'través', 'desde', 'entre', 'nuevo', 'medio', 'nueva', 'torno', 'sobre', 'pierre', 'algunos', 'años', 'ciudad'];
+          let text = thesisData
+            .filter(row => row['Título'])
+            .map(row => row['Título'])
+            .join(' ')
+            .toLowerCase();
+          text = text.replace(/[^a-záéíóúñ\s]/g, ' ');
+          const words = text.split(/\s+/).filter(w => w.length > 3 && !stopwords.includes(w));
+          const freq = {};
+          words.forEach(w => {
+            freq[w] = (freq[w] || 0) + 1;
+          });
+          const wordList = Object.entries(freq)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 100)
+            .map(([word, size]) => [word, size * 5]);
+          WordCloud(canvasRef.current, {
+            list: wordList,
+            fontFamily: 'sans-serif',
+            gridSize: 8,
+            weightFactor: 1,
+            rotateRatio: 0.5,
+            rotationSteps: 2,
+            backgroundColor: 'white',
+            color: 'random-dark'
+          });
+        }
+      }, [thesisData]);
 
       const handleYearClick = (event) => {
         if (event && event.activePayload && event.activePayload[0]) {
@@ -234,7 +467,7 @@
           </section>
 
           <section className="mb-12 section-card bg-white p-6 rounded-lg">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-users mr-2"></i> Distribución por Género</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-users mr-2"></i> Distribución por Género (según consta en el título)</h2>
             <Recharts.ResponsiveContainer width="100%" height={300}>
               <Recharts.PieChart>
                 <Recharts.Pie
@@ -285,7 +518,7 @@
             </Recharts.ResponsiveContainer>
           </section>
 
-          <section className="mb-12 section-card bg-white p-6 rounded-lg">
+        <section className="mb-12 section-card bg-white p-6 rounded-lg">
             <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-table mr-2"></i> Graduados {selectedYear ? `en ${selectedYear}` : 'Totales'}</h2>
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white border border-gray-200 rounded-lg">
@@ -339,12 +572,20 @@
               </div>
             )}
           </section>
+          
+            <section className="mb-12 section-card bg-white p-6 rounded-lg">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-cloud mr-2"></i> Nube de Palabras de Trabajos finales de grado</h2>
+            <p className="text-gray-600 mb-4">Esta nube de palabras muestra los temas más frecuentes en los títulos de las TFG de los graduados en Sociología.</p>
+            <div className="flex justify-center">
+              <canvas ref={canvasRef} width={800} height={400}></canvas>
+            </div>
+          </section>
 
           <section className="section-card bg-white p-6 rounded-lg">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4"><i className="fas fa-file-alt mr-2"></i> Conclusión</h2>
             <p className="text-gray-600">
               Los datos reflejan un sólido desempeño académico de los graduados en Sociología de la UNVM, con un promedio general de <span className="font-semibold">{promedioGeneral}</span>. 
-              La distribución por género muestra una representación equilibrada, con una ligera mayoría femenina. El tiempo promedio de finalización es de aproximadamente <span className="font-semibold">{duracionPromedio} años</span>. 
+              La distribución por género muestra una mayoría femenina. El tiempo promedio de finalización es de aproximadamente <span className="font-semibold">{duracionPromedio} años</span>. 
               La cantidad de graduados ha variado a lo largo de los años, con picos en ciertos períodos. Este análisis ofrece información valiosa sobre la trayectoria académica de los graduados en Sociología de la UNVM.
             </p>
           </section>
