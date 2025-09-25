@@ -42,7 +42,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tablero de Graduados y Tesis de Sociología - UNVM</title>
+  <title>Tablero de Graduados y TFG de Sociología - UNVM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
@@ -340,7 +340,7 @@
             data: {
               labels: Object.keys(sortedSpecialties),
               datasets: [{
-                label: 'Número de tesis',
+                label: 'Número de TFG',
                 data: Object.values(sortedSpecialties),
                 backgroundColor: [
                   '#1abc9c', '#3498db', '#9b59b6', '#e74c3c', '#f1c40f',
@@ -357,14 +357,14 @@
               plugins: {
                 title: {
                   display: true,
-                  text: 'Distribución de tesis por especialidad sociológica',
+                  text: 'Distribución de TFG por especialidad sociológica',
                   font: { size: 18 }
                 }
               },
               scales: {
                 y: {
                   beginAtZero: true,
-                  title: { display: true, text: 'Número de tesis' }
+                  title: { display: true, text: 'Número de TFG' }
                 },
                 x: {
                   title: { display: true, text: 'Especialidad' }
@@ -472,7 +472,7 @@
       return (
         <div className="bg-white shadow-lg rounded-lg p-8 fade-in">
           <h1 className="text-4xl font-bold text-center text-teal-600 mb-8">
-            <i className="fas fa-graduation-cap mr-2"></i> Tablero de Graduados y Tesis de Sociología - UNVM
+            <i className="fas fa-graduation-cap mr-2"></i> Tablero de Graduados y TFG de Sociología - UNVM
           </h1>
 
           <div className="flex border-b border-gray-200 mb-6">
@@ -486,7 +486,7 @@
               className={`tab-button flex-1 py-3 px-4 text-lg font-semibold text-gray-700 rounded-t-lg ${activeTab === 'tesis' ? 'active' : 'bg-gray-100'}`}
               onClick={() => setActiveTab('tesis')}
             >
-              <i className="fas fa-book mr-2"></i> Tesis
+              <i className="fas fa-book mr-2"></i> Trabajos Finales de Grado
             </button>
           </div>
 
@@ -533,7 +533,7 @@
               </section>
 
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-chart-pie mr-2"></i> Distribución por Género</h2>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-chart-pie mr-2"></i> Distribución por Género (según consta en el título)</h2>
                 <Recharts.ResponsiveContainer width="100%" height={300}>
                   <Recharts.PieChart>
                     <Recharts.Pie
@@ -635,7 +635,7 @@
               <section className="mb-12 section-card bg-gray-50 p-6 rounded-lg">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-lightbulb mr-2"></i> Conclusión</h2>
                 <p className="text-gray-600">
-                  Este análisis revela tendencias clave en la graduación de estudiantes de Sociología en la UNVM. La distribución por género muestra una representación equilibrada, mientras que los promedios académicos tienden a concentrarse en rangos altos. El tiempo promedio de egreso sugiere una duración estándar de la carrera, con variaciones que podrían explorarse en estudios futuros.
+                  Este análisis revela tendencias clave en la graduación de estudiantes de Sociología en la UNVM. La distribución por género muestra una mayoría femenina, mientras que los promedios académicos tienden a concentrarse en rangos altos. El tiempo promedio de egreso sugiere una duración prolongada de la carrera, con variaciones que podrían explorarse en estudios futuros.
                 </p>
               </section>
             </div>
@@ -644,12 +644,12 @@
           {activeTab === 'tesis' && (
             <div>
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-chart-bar mr-2"></i> Distribución de Tesis por Especialidad</h2>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-chart-bar mr-2"></i> Distribución de TFG por Especialidad</h2>
                 <canvas ref={chartRef} width="100%" height="300"></canvas>
               </section>
 
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-table mr-2"></i> Tesis</h2>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-table mr-2"></i>Trabajos Finales de Grado</h2>
                 <div className="mb-4">
                   <input
                     type="text"
@@ -701,7 +701,7 @@
               <section className="mb-12 section-card bg-gray-50 p-6 rounded-lg">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-sticky-note mr-2"></i> Notas</h2>
                 <p className="text-gray-600">
-                  Algunos títulos podrían encajar en múltiples especialidades (por ejemplo, las tesis relacionadas con la migración a menudo se cruzan con género o desigualdad). Fueron colocados en la categoría más prominente según el enfoque principal del título. La clasificación refleja subcampos sociológicos comunes, pero algunas tesis pueden abarcar áreas interdisciplinarias (por ejemplo, sociología del cuerpo y cultura).
+                  Algunos títulos podrían encajar en múltiples especialidades (por ejemplo, los TFG relacionadas con la migración a menudo se cruzan con género o desigualdad). Fueron colocados en la categoría más prominente según el enfoque principal del título. La clasificación refleja subcampos sociológicos comunes, pero algunos TFG pueden abarcar áreas interdisciplinarias (por ejemplo, sociología del cuerpo y cultura).
                 </p>
               </section>
             </div>
