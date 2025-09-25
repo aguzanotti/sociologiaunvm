@@ -42,7 +42,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tablero de Graduados y TFG de Sociología - UNVM</title>
+  <title>Tablero de Graduados y Trabajos Finales de Grado - UNVM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
@@ -75,7 +75,7 @@
       transition: background-color 0.2s ease;
     }
     .pagination-button:hover:not(:disabled) {
-      background-color: #3498db;
+      background-color: #1e40af;
     }
     .pagination-button:disabled {
       opacity: 0.5;
@@ -85,17 +85,27 @@
       transition: background-color 0.2s ease, color 0.2s ease;
     }
     .tab-button:hover {
-      background-color: #3498db;
+      background-color: #1e40af;
       color: white;
     }
     .tab-button.active {
-      background-color: #1abc9c;
+      background-color: #1e40af;
       color: white;
     }
     .name-column {
       min-width: 400px;
       word-break: break-word;
       white-space: normal;
+    }
+    .unvm-blue {
+      color: #1e40af;
+    }
+    .unvm-blue-bg {
+      background-color: #1e40af;
+    }
+    .unvm-blue-light {
+      background-color: #dbeafe;
+      color: #1e40af;
     }
   </style>
 </head>
@@ -107,11 +117,11 @@
 
     const App = () => {
       const [data, setData] = useState(null);
-      const [thesisData, setThesisData] = useState([]);
+      const [tfgData, setTfgData] = useState([]);
       const [loading, setLoading] = useState(true);
       const [selectedYear, setSelectedYear] = useState(null);
       const [tableData, setTableData] = useState([]);
-      const [filteredThesisData, setFilteredThesisData] = useState([]);
+      const [filteredTfgData, setFilteredTfgData] = useState([]);
       const [currentPageTab1, setCurrentPageTab1] = useState(1);
       const [currentPageTab2, setCurrentPageTab2] = useState(1);
       const [filterText, setFilterText] = useState('');
@@ -120,8 +130,8 @@
       const chartInstanceRef = useRef(null);
       const rowsPerPage = 25;
 
-      // Thesis data (unchanged)
-      const initialThesisData = [
+      // TFG data (previously thesis data)
+      const initialTfgData = [
         { specialty: "Movimientos sociales y acción colectiva", title: "La constitución de identidades en las protestas agrarias del sur cordobés a través de la participación de los jóvenes de F.A.A. de Oncativo", authors: "Monti, Ileana" },
         { specialty: "Movimientos sociales y acción colectiva", title: "La participación de los productores tamberos del este cordobés en acciones de protesta del sector agropecuario entre 1997-1999", authors: "Gassino, Javier" },
         { specialty: "Movimientos sociales y acción colectiva", title: "Vecinos autoconvocados de Córdoba. Teoría, cultura e identidad en la construcción de los movimientos sociales durante la década de los 90 del siglo XX en la ciudad de Córdoba", authors: "Cañas, Andrés" },
@@ -278,7 +288,7 @@
           header: true,
           skipEmptyLines: true,
           dynamicTyping: false,
-          transformHeader: (header) => header.trim().replace(/^"|"$/g, '').toUpperCase(), // Normalize headers to uppercase
+          transformHeader: (header) => header.trim().replace(/^"|"$/g, '').toUpperCase(),
           transform: (value, header) => {
             let cleaned = value ? value.trim().replace(/^"|"$/g, '') : '';
             if (header === 'PROMEDIO') {
@@ -299,8 +309,8 @@
                 (row['FECHA_EGRESO'].getMonth() - row['FECHA_INGRESO'].getMonth()) / 12 : null
             }));
             const sortedData = [...cleanedData].sort((a, b) => new Date(a['FECHA_EGRESO']) - new Date(b['FECHA_EGRESO']));
-            console.log('Parsed CSV Data:', results.data); // Debug: Log raw parsed data
-            console.log('Datos de la tabla:', sortedData); // Debug: Log processed data
+            console.log('Parsed CSV Data:', results.data);
+            console.log('Datos de la tabla:', sortedData);
             setData(cleanedData);
             setTableData(sortedData);
             setLoading(false);
@@ -311,20 +321,20 @@
           }
         });
 
-        // Set thesis data for Tab 2
-        setThesisData(initialThesisData);
-        setFilteredThesisData(initialThesisData);
+        // Set TFG data for Tab 2
+        setTfgData(initialTfgData);
+        setFilteredTfgData(initialTfgData);
       }, []);
 
       useEffect(() => {
         // Initialize Chart.js for Tab 2
-        if (activeTab === 'tesis' && chartRef.current && thesisData.length > 0) {
+        if (activeTab === 'tfg' && chartRef.current && tfgData.length > 0) {
           if (chartInstanceRef.current) {
             chartInstanceRef.current.destroy();
           }
 
-          const specialtyCounts = thesisData.reduce((acc, thesis) => {
-            acc[thesis.specialty] = (acc[thesis.specialty] || 0) + 1;
+          const specialtyCounts = tfgData.reduce((acc, tfg) => {
+            acc[tfg.specialty] = (acc[tfg.specialty] || 0) + 1;
             return acc;
           }, {});
 
@@ -343,12 +353,12 @@
                 label: 'Número de TFG',
                 data: Object.values(sortedSpecialties),
                 backgroundColor: [
-                  '#1abc9c', '#3498db', '#9b59b6', '#e74c3c', '#f1c40f',
-                  '#2ecc71', '#e67e22', '#34495e', '#7f8c8d', '#d35400',
-                  '#2980b9', '#8e44ad', '#c0392b', '#f39c12', '#27ae60',
-                  '#d35400', '#16a085', '#2c3e50', '#95a5a6', '#bdc3c7'
+                  '#1e40af', '#dbeafe', '#3b82f6', '#93c5fd', '#2563eb',
+                  '#60a5fa', '#1d4ed8', '#bfdbfe', '#1e40af', '#93c5fd',
+                  '#3b82f6', '#2563eb', '#60a5fa', '#dbeafe', '#1d4ed8',
+                  '#93c5fd', '#1e40af', '#bfdbfe', '#3b82f6', '#2563eb'
                 ],
-                borderColor: '#2c3e50',
+                borderColor: '#1e40af',
                 borderWidth: 1
               }]
             },
@@ -356,16 +366,11 @@
               aspectRatio: 2,
               plugins: {
                 title: {
-                  display: false,
-                  }
-              },
-            },
-            options: {
-              aspectRatio: 2,
-              plugins: {
+                  display: false
+                },
                 legend: {
-                  display: false,
-                  }
+                  display: false
+                }
               },
               scales: {
                 y: {
@@ -380,7 +385,7 @@
                 if (elements.length > 0) {
                   const index = elements[0].index;
                   const selectedSpecialty = Object.keys(sortedSpecialties)[index];
-                  setFilteredThesisData(thesisData.filter(thesis => thesis.specialty === selectedSpecialty));
+                  setFilteredTfgData(tfgData.filter(tfg => tfg.specialty === selectedSpecialty));
                   setFilterText('');
                   setCurrentPageTab2(1);
                 }
@@ -394,7 +399,7 @@
             chartInstanceRef.current = null;
           }
         };
-      }, [activeTab, thesisData]);
+      }, [activeTab, tfgData]);
 
       const handleYearClick = (event) => {
         if (event && event.activePayload && event.activePayload[0]) {
@@ -423,12 +428,12 @@
       const handleFilterChange = (e) => {
         const filter = e.target.value.toLowerCase();
         setFilterText(filter);
-        const filteredData = thesisData.filter(thesis =>
-          thesis.specialty.toLowerCase().includes(filter) ||
-          thesis.title.toLowerCase().includes(filter) ||
-          thesis.authors.toLowerCase().includes(filter)
+        const filteredData = tfgData.filter(tfg =>
+          tfg.specialty.toLowerCase().includes(filter) ||
+          tfg.title.toLowerCase().includes(filter) ||
+          tfg.authors.toLowerCase().includes(filter)
         );
-        setFilteredThesisData(filteredData);
+        setFilteredTfgData(filteredData);
         setCurrentPageTab2(1);
       };
 
@@ -472,13 +477,16 @@
       const totalPagesTab1 = Math.ceil(tableData.length / rowsPerPage);
       const paginatedDataTab1 = tableData.slice((currentPageTab1 - 1) * rowsPerPage, currentPageTab1 * rowsPerPage);
 
-      const totalPagesTab2 = Math.ceil(filteredThesisData.length / rowsPerPage);
-      const paginatedDataTab2 = filteredThesisData.slice((currentPageTab2 - 1) * rowsPerPage, currentPageTab2 * rowsPerPage);
+      const totalPagesTab2 = Math.ceil(filteredTfgData.length / rowsPerPage);
+      const paginatedDataTab2 = filteredTfgData.slice((currentPageTab2 - 1) * rowsPerPage, currentPageTab2 * rowsPerPage);
 
       return (
         <div className="bg-white shadow-lg rounded-lg p-8 fade-in">
-          <h1 className="text-4xl font-bold text-center text-teal-600 mb-8">
-            <i className="fas fa-graduation-cap mr-2"></i> Tablero de Graduados y TFG de Sociología - UNVM
+          <div className="flex justify-center mb-8">
+            <img src="https://www.unvm.edu.ar/wp-content/uploads/2023/03/logo-unvm.png" alt="UNVM Logo" className="h-16" />
+          </div>
+          <h1 className="text-4xl font-bold text-center unvm-blue mb-8">
+            <i className="fas fa-graduation-cap mr-2"></i> Tablero de Graduados y Trabajos Finales de Grado - UNVM
           </h1>
 
           <div className="flex border-b border-gray-200 mb-6">
@@ -489,8 +497,8 @@
               <i className="fas fa-chart-bar mr-2"></i> Graduados
             </button>
             <button
-              className={`tab-button flex-1 py-3 px-4 text-lg font-semibold text-gray-700 rounded-t-lg ${activeTab === 'tesis' ? 'active' : 'bg-gray-100'}`}
-              onClick={() => setActiveTab('tesis')}
+              className={`tab-button flex-1 py-3 px-4 text-lg font-semibold text-gray-700 rounded-t-lg ${activeTab === 'tfg' ? 'active' : 'bg-gray-100'}`}
+              onClick={() => setActiveTab('tfg')}
             >
               <i className="fas fa-book mr-2"></i> Trabajos Finales de Grado
             </button>
@@ -499,47 +507,47 @@
           {activeTab === 'graduados' && (
             <div>
               <section className="mb-12 section-card bg-gray-50 p-6 rounded-lg">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4"><i className="fas fa-info-circle mr-2"></i> Resumen</h2>
+                <h2 className="text-2xl font-semibold unvm-blue mb-4"><i className="fas fa-info-circle mr-2"></i> Resumen</h2>
                 <p className="text-gray-600 mb-4">
                   Este tablero presenta un análisis de {totalGraduados} graduados en Sociología de la Universidad Nacional de Villa María (UNVM). 
                   Se incluyen métricas clave como el promedio histórico, distribución por género, tiempo de finalización y cantidad de graduados.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-teal-100 p-4 rounded-lg text-center">
-                    <p className="text-sm text-teal-600">Total de Graduados</p>
-                    <p className="text-2xl font-bold text-teal-800">{totalGraduados}</p>
+                  <div className="unvm-blue-light p-4 rounded-lg text-center">
+                    <p className="text-sm unvm-blue">Total de Graduados</p>
+                    <p className="text-2xl font-bold unvm-blue">{totalGraduados}</p>
                   </div>
-                  <div className="bg-teal-100 p-4 rounded-lg text-center">
-                    <p className="text-sm text-teal-600">Promedio General</p>
-                    <p className="text-2xl font-bold text-teal-800">{promedioGeneral}</p>
+                  <div className="unvm-blue-light p-4 rounded-lg text-center">
+                    <p className="text-sm unvm-blue">Promedio General</p>
+                    <p className="text-2xl font-bold unvm-blue">{promedioGeneral}</p>
                   </div>
-                  <div className="bg-teal-100 p-4 rounded-lg text-center">
-                    <p className="text-sm text-teal-600">Tiempo Promedio</p>
-                    <p className="text-2xl font-bold text-teal-800">{duracionPromedio} años</p>
+                  <div className="unvm-blue-light p-4 rounded-lg text-center">
+                    <p className="text-sm unvm-blue">Tiempo Promedio</p>
+                    <p className="text-2xl font-bold unvm-blue">{duracionPromedio} años</p>
                   </div>
-                  <div className="bg-teal-100 p-4 rounded-lg text-center">
-                    <p className="text-sm text-teal-600">Distribución por Género</p>
-                    <p className="text-2xl font-bold text-teal-800">{porcentajeMasculino}% M / {porcentajeFemenino}% F</p>
+                  <div className="unvm-blue-light p-4 rounded-lg text-center">
+                    <p className="text-sm unvm-blue">Distribución por Género</p>
+                    <p className="text-2xl font-bold unvm-blue">{porcentajeMasculino}% M / {porcentajeFemenino}% F</p>
                   </div>
                 </div>
               </section>
 
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-chart-bar mr-2"></i> Distribución de Promedios</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-chart-bar mr-2"></i> Distribución de Promedios</h2>
                 <Recharts.ResponsiveContainer width="100%" height={300}>
                   <Recharts.BarChart data={binsPromedio}>
                     <Recharts.CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <Recharts.XAxis dataKey="rango" fontSize={12} stroke="#4b5563" />
-                    <Recharts.YAxis fontSize={12} stroke="#4b5563" />
+                    <Recharts.XAxis dataKey="rango" fontSize={12} stroke="#1e40af" />
+                    <Recharts.YAxis fontSize={12} stroke="#1e40af" />
                     <Recharts.Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                     <Recharts.Legend />
-                    <Recharts.Bar dataKey="cantidad" fill="#1abc9c" />
+                    <Recharts.Bar dataKey="cantidad" fill="#1e40af" />
                   </Recharts.BarChart>
                 </Recharts.ResponsiveContainer>
               </section>
 
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-chart-pie mr-2"></i> Distribución por Género (según consta en el título)</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-chart-pie mr-2"></i> Distribución por Género</h2>
                 <Recharts.ResponsiveContainer width="100%" height={300}>
                   <Recharts.PieChart>
                     <Recharts.Pie
@@ -549,11 +557,11 @@
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      fill="#1abc9c"
+                      fill="#1e40af"
                       label
                     >
-                      <Recharts.Cell fill="#1abc9c" />
-                      <Recharts.Cell fill="#3498db" />
+                      <Recharts.Cell fill="#1e40af" />
+                      <Recharts.Cell fill="#dbeafe" />
                     </Recharts.Pie>
                     <Recharts.Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                     <Recharts.Legend />
@@ -562,34 +570,34 @@
               </section>
 
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-clock mr-2"></i> Distribución de Tiempo de Egreso</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-clock mr-2"></i> Distribución de Tiempo de Egreso</h2>
                 <Recharts.ResponsiveContainer width="100%" height={300}>
                   <Recharts.BarChart data={binsDuracion}>
                     <Recharts.CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <Recharts.XAxis dataKey="rango" fontSize={12} stroke="#4b5563" />
-                    <Recharts.YAxis fontSize={12} stroke="#4b5563" />
+                    <Recharts.XAxis dataKey="rango" fontSize={12} stroke="#1e40af" />
+                    <Recharts.YAxis fontSize={12} stroke="#1e40af" />
                     <Recharts.Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                     <Recharts.Legend />
-                    <Recharts.Bar dataKey="cantidad" fill="#1abc9c" />
+                    <Recharts.Bar dataKey="cantidad" fill="#1e40af" />
                   </Recharts.BarChart>
                 </Recharts.ResponsiveContainer>
               </section>
 
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-calendar-alt mr-2"></i> Graduados por Año</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-calendar-alt mr-2"></i> Graduados por Año</h2>
                 <Recharts.ResponsiveContainer width="100%" height={300}>
                   <Recharts.LineChart data={datosAnos} onClick={handleYearClick}>
                     <Recharts.CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <Recharts.XAxis dataKey="year" fontSize={12} stroke="#4b5563" />
-                    <Recharts.YAxis fontSize={12} stroke="#4b5563" />
+                    <Recharts.XAxis dataKey="year" fontSize={12} stroke="#1e40af" />
+                    <Recharts.YAxis fontSize={12} stroke="#1e40af" />
                     <Recharts.Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                     <Recharts.Legend />
-                    <Recharts.Line type="monotone" dataKey="count" stroke="#1abc9c" strokeWidth={2} />
+                    <Recharts.Line type="monotone" dataKey="count" stroke="#1e40af" strokeWidth={2} />
                   </Recharts.LineChart>
                 </Recharts.ResponsiveContainer>
                 {selectedYear && (
                   <button
-                    className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                    className="mt-4 px-4 py-2 unvm-blue-bg text-white rounded-lg hover:bg-blue-800"
                     onClick={() => handleYearClick(null)}
                   >
                     Limpiar Filtro
@@ -598,19 +606,21 @@
               </section>
 
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-table mr-2"></i> Graduados</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-table mr-2"></i> Graduados</h2>
                 <div className="overflow-x-auto">
                   <table className="min-w-full bg-white border border-gray-200">
                     <thead>
-                      <tr className="bg-teal-50">
-                        <th className="py-2 px-4 border-b text-left text-teal-700 name-column">Nombre</th>
-                        <th className="py-2 px-4 border-b text-left text-teal-700">Fecha de Ingreso</th>
-                        <th className="py-2 px-4 border-b text-left text-teal-700">Fecha de Egreso</th>
+                      <tr className="unvm-blue-light">
+                        <th className="py-2 px-4 border-b text-left unvm-blue">Nº</th>
+                        <th className="py-2 px-4 border-b text-left unvm-blue name-column">Nombre</th>
+                        <th className="py-2 px-4 border-b text-left unvm-blue">Fecha de Ingreso</th>
+                        <th className="py-2 px-4 border-b text-left unvm-blue">Fecha de Egreso</th>
                       </tr>
                     </thead>
                     <tbody>
                       {paginatedDataTab1.map((row, index) => (
                         <tr key={index} className="hover:bg-gray-50">
+                          <td className="py-2 px-4 border-b">{(currentPageTab1 - 1) * rowsPerPage + index + 1}</td>
                           <td className="py-2 px-4 border-b name-column">{row['APELLIDO Y NOMBRE'] || 'Sin Nombre'}</td>
                           <td className="py-2 px-4 border-b">{row['FECHA_INGRESO'] ? row['FECHA_INGRESO'].toLocaleDateString() : '-'}</td>
                           <td className="py-2 px-4 border-b">{row['FECHA_EGRESO'] ? row['FECHA_EGRESO'].toLocaleDateString() : '-'}</td>
@@ -621,7 +631,7 @@
                 </div>
                 <div className="flex justify-center mt-4">
                   <button
-                    className="pagination-button px-4 py-2 mx-1 bg-teal-600 text-white rounded-lg"
+                    className="pagination-button px-4 py-2 mx-1 unvm-blue-bg text-white rounded-lg"
                     onClick={() => handlePageChangeTab1(currentPageTab1 - 1)}
                     disabled={currentPageTab1 === 1}
                   >
@@ -629,7 +639,7 @@
                   </button>
                   <span className="px-4 py-2 mx-1 text-gray-700">Página {currentPageTab1} de {totalPagesTab1}</span>
                   <button
-                    className="pagination-button px-4 py-2 mx-1 bg-teal-600 text-white rounded-lg"
+                    className="pagination-button px-4 py-2 mx-1 unvm-blue-bg text-white rounded-lg"
                     onClick={() => handlePageChangeTab1(currentPageTab1 + 1)}
                     disabled={currentPageTab1 === totalPagesTab1}
                   >
@@ -639,23 +649,23 @@
               </section>
 
               <section className="mb-12 section-card bg-gray-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-lightbulb mr-2"></i> Conclusión</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-lightbulb mr-2"></i> Conclusión</h2>
                 <p className="text-gray-600">
-                  Este análisis revela tendencias clave en la graduación de estudiantes de Sociología en la UNVM. La distribución por género muestra una mayoría femenina, mientras que los promedios académicos tienden a concentrarse en rangos altos. El tiempo promedio de egreso sugiere una duración prolongada de la carrera, con variaciones que podrían explorarse en estudios futuros.
+                  Este análisis revela tendencias clave en la graduación de estudiantes de Sociología en la UNVM. La distribución por género muestra una representación equilibrada, mientras que los promedios académicos tienden a concentrarse en rangos altos. El tiempo promedio de egreso sugiere una duración estándar de la carrera, con variaciones que podrían explorarse en estudios futuros.
                 </p>
               </section>
             </div>
           )}
 
-          {activeTab === 'tesis' && (
+          {activeTab === 'tfg' && (
             <div>
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-chart-bar mr-2"></i> Distribución de TFG por Especialidad</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-chart-bar mr-2"></i> Distribución de TFG por Especialidad</h2>
                 <canvas ref={chartRef} width="100%" height="300"></canvas>
               </section>
 
               <section className="mb-12 section-card bg-white p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-table mr-2"></i>Trabajos Finales de Grado</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-table mr-2"></i> Trabajos Finales de Grado</h2>
                 <div className="mb-4">
                   <input
                     type="text"
@@ -668,18 +678,18 @@
                 <div className="overflow-x-auto">
                   <table className="min-w-full bg-white border border-gray-200">
                     <thead>
-                      <tr className="bg-teal-50">
-                        <th className="py-2 px-4 border-b text-left text-teal-700">Especialidad</th>
-                        <th className="py-2 px-4 border-b text-left text-teal-700">Título</th>
-                        <th className="py-2 px-4 border-b text-left text-teal-700">Autor(es)</th>
+                      <tr className="unvm-blue-light">
+                        <th className="py-2 px-4 border-b text-left unvm-blue">Especialidad</th>
+                        <th className="py-2 px-4 border-b text-left unvm-blue">Título</th>
+                        <th className="py-2 px-4 border-b text-left unvm-blue">Autor(es)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedDataTab2.map((thesis, index) => (
+                      {paginatedDataTab2.map((tfg, index) => (
                         <tr key={index} className="hover:bg-gray-50">
-                          <td className="py-2 px-4 border-b">{thesis.specialty}</td>
-                          <td className="py-2 px-4 border-b">{thesis.title}</td>
-                          <td className="py-2 px-4 border-b">{thesis.authors}</td>
+                          <td className="py-2 px-4 border-b">{tfg.specialty}</td>
+                          <td className="py-2 px-4 border-b">{tfg.title}</td>
+                          <td className="py-2 px-4 border-b">{tfg.authors}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -687,7 +697,7 @@
                 </div>
                 <div className="flex justify-center mt-4">
                   <button
-                    className="pagination-button px-4 py-2 mx-1 bg-teal-600 text-white rounded-lg"
+                    className="pagination-button px-4 py-2 mx-1 unvm-blue-bg text-white rounded-lg"
                     onClick={() => handlePageChangeTab2(currentPageTab2 - 1)}
                     disabled={currentPageTab2 === 1}
                   >
@@ -695,7 +705,7 @@
                   </button>
                   <span className="px-4 py-2 mx-1 text-gray-700">Página {currentPageTab2} de {totalPagesTab2}</span>
                   <button
-                    className="pagination-button px-4 py-2 mx-1 bg-teal-600 text-white rounded-lg"
+                    className="pagination-button px-4 py-2 mx-1 unvm-blue-bg text-white rounded-lg"
                     onClick={() => handlePageChangeTab2(currentPageTab2 + 1)}
                     disabled={currentPageTab2 === totalPagesTab2}
                   >
@@ -705,9 +715,9 @@
               </section>
 
               <section className="mb-12 section-card bg-gray-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-sticky-note mr-2"></i> Notas</h2>
+                <h2 className="text-xl font-semibold unvm-blue mb-4"><i className="fas fa-sticky-note mr-2"></i> Notas</h2>
                 <p className="text-gray-600">
-                  Algunos títulos podrían encajar en múltiples especialidades (por ejemplo, los TFG relacionadas con la migración a menudo se cruzan con género o desigualdad). Fueron colocados en la categoría más prominente según el enfoque principal del título. La clasificación refleja subcampos sociológicos comunes, pero algunos TFG pueden abarcar áreas interdisciplinarias (por ejemplo, sociología del cuerpo y cultura).
+                  Algunos títulos de TFG podrían encajar en múltiples especialidades (por ejemplo, los TFG relacionados con la migración a menudo se cruzan con género o desigualdad). Fueron colocados en la categoría más prominente según el enfoque principal del título. La clasificación refleja subcampos sociológicos comunes, pero algunos TFG pueden abarcar áreas interdisciplinarias (por ejemplo, sociología del cuerpo y cultura).
                 </p>
               </section>
             </div>
