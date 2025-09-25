@@ -340,6 +340,7 @@
             data: {
               labels: Object.keys(sortedSpecialties),
               datasets: [{
+                label: 'Número de TFG',
                 data: Object.values(sortedSpecialties),
                 backgroundColor: [
                   '#1abc9c', '#3498db', '#9b59b6', '#e74c3c', '#f1c40f',
@@ -355,10 +356,16 @@
               aspectRatio: 2,
               plugins: {
                 title: {
-                  display: true,
-                  text: 'Distribución de TFG por especialidad sociológica',
-                  font: { size: 18 }
-                }
+                  display: false,
+                  }
+              },
+            },
+            options: {
+              aspectRatio: 2,
+              plugins: {
+                legend: {
+                  display: false,
+                  }
               },
               scales: {
                 y: {
