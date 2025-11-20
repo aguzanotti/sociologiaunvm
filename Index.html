@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — Tendencias Económicas de Argentina</title>
+  <!-- Tailwind CDN (para prototipado rápido) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    html, body { height: 100%; }
+    .glass { background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); backdrop-filter: blur(6px); }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans leading-normal">
+  <div class="min-h-screen p-6">
+    <header class="mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Tendencias Económicas de Argentina</h1>
+          <p class="text-sm text-gray-300">Resumen interactivo — resumen general, exploración de datos y conclusiones</p>
+        </div>
+        <div class="space-x-2">
+          <button id="exportBtn" class="px-3 py-2 bg-indigo-600 rounded text-white text-sm">Exportar vistas</button>
+          <button id="resetBtn" class="px-3 py-2 bg-gray-700 rounded text-sm">Reset filtros</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenedor principal -->
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Panel izquierdo: Resumen general -->
+      <section class="lg:col-span-1 glass p-4 rounded-lg shadow-lg">
+        <h2 class="text-lg font-semibold mb-3">Resumen general</h2>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 bg-gray-800 rounded">
+              <div class="text-xs text-gray-400">Inflación (12m)</div>
+              <div id="cardInflacion" class="text-2xl font-bold">-- %</div>
+            </div>
+            <div class="p-3 bg-gray-800 rounded">
+              <div class="text-xs text-gray-400">Crec. PIB (anual)</div>
+              <div id="cardPIB" class="text-2xl font-bold">-- %</div>
+            </div>
+            <div class="p-3 bg-gray-800 rounded">
+              <div class="text-xs text-gray-400">Desempleo</div>
+              <div id="cardDesempleo" class="text-2xl font-bold">-- %</div>
+            </div>
+            <div class="p-3 bg-gray-800 rounded">
+              <div class="text-xs text-gray-400">Tipo de cambio (USD/ARS)</div>
+              <div id="cardCambio" class="text-2xl font-bold">--</div>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm text-gray-300">Rango temporal</label>
+            <div class="flex gap-2 mt-2">
+              <select id="presetRange" class="bg-gray-800 p-2 rounded text-sm">
+                <option value="5">Últimos 5 años</option>
+                <option value="10" selected>Últimos 10 años</option>
+                <option value="15">Últimos 15 años</option>
+              </select>
+              <input id="dateFrom" type="date" class="bg-gray-800 p-2 rounded text-sm" />
+              <input id="dateTo" type="date" class="bg-gray-800 p-2 rounded text-sm" />
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm text-gray-300">Indicadores</label>
+            <div class="mt-2 grid grid-cols-1 gap-2">
+              <label class="inline-flex items-center space-x-2"><input type="checkbox" class="indicatorCheckbox" value="inflation" checked /> <span>Inflación</span></label>
+              <label class="inline-flex items-center space-x-2"><input type="checkbox" class="indicatorCheckbox" value="gdp" checked /> <span>PIB</span></label>
+              <label class="inline-flex items-center space-x-2"><input type="checkbox" class="indicatorCheckbox" value="unemployment" checked /> <span>Desempleo</span></label>
+              <label class="inline-flex items-center space-x-2"><input type="checkbox" class="indicatorCheckbox" value="exchange" /> <span>Tipo de cambio</span></label>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Panel central: Charts -->
+      <section class="lg:col-span-2 glass p-4 rounded-lg shadow-lg">
+        <h2 class="text-lg font-semibold mb-3">Exploración de datos</h2>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="p-3 bg-gray-800 rounded">
+            <h3 class="text-sm font-medium mb-2">Inflación (mensual y 12m)</h3>
+            <canvas id="chartInflacion" height="220"></canvas>
+          </div>
+
+          <div class="p-3 bg-gray-800 rounded">
+            <h3 class="text-sm font-medium mb-2">PIB: variación anual</h3>
+            <canvas id="chartPIB" height="220"></canvas>
+          </div>
+
+          <div class="p-3 bg-gray-800 rounded">
+            <h3 class="text-sm font-medium mb-2">Desempleo</h3>
+            <canvas id="chartDesempleo" height="220"></canvas>
+          </div>
+
+          <div class="p-3 bg-gray-800 rounded">
+            <h3 class="text-sm font-medium mb-2">Tipo de cambio (serie histórica)</h3>
+            <canvas id="chartCambio" height="220"></canvas>
+          </div>
+        </div>
+
+        <div class="mt-4 p-3 bg-gray-800 rounded">
+          <h3 class="text-sm font-medium mb-2">Tabla de datos (muestra)</h3>
+          <div class="overflow-auto max-h-48">
+            <table id="dataTable" class="min-w-full text-sm">
+              <thead class="text-gray-400">
+                <tr>
+                  <th class="px-3 py-2 text-left">Fecha</th>
+                  <th class="px-3 py-2 text-right">Inflación (%)</th>
+                  <th class="px-3 py-2 text-right">PIB (%)</th>
+                  <th class="px-3 py-2 text-right">Desempleo (%)</th>
+                  <th class="px-3 py-2 text-right">USD/ARS</th>
+                </tr>
+              </thead>
+              <tbody id="dataBody" class="text-gray-200"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Conclusiones -->
+      <section class="lg:col-span-3 glass p-4 rounded-lg shadow-lg">
+        <h2 class="text-lg font-semibold mb-3">Conclusiones</h2>
+        <div id="conclusions" class="prose prose-invert text-gray-200">
+          <p>Este panel presenta conclusiones automáticas basadas en los filtros actuales. Está pensado como apoyo para informes comunicables a audiencias no técnicas.</p>
+          <ul class="list-disc ml-5" id="conclusionList">
+            <li>Señal 1: ...</li>
+            <li>Señal 2: ...</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="mt-6 text-xs text-gray-500">Fuente: datos de ejemplo — reemplazar con series oficiales (INDEC, BCRA, Ministerio de Economía, Banco Mundial, etc.).</footer>
+  </div>
+
+  <!-- Scripts: lógica y datos de ejemplo -->
+  <script>
+    // ---------------------------------------------------------
+    // NOTA: Este archivo incluye datos de ejemplo. Reemplace
+    // los arrays `sampleData` o active la función fetchCSV
+    // para obtener datos reales desde CSV/JSON/una API.
+    // ---------------------------------------------------------
+
+    // Datos de ejemplo (período anual/mensual simplificado)
+    const sampleData = {
+      labels: ["2016","2017","2018","2019","2020","2021","2022","2023","2024","2025"],
+      inflation12: [39.8, 24.8, 47.6, 53.8, 36.1, 50.9, 94.8, 140.0, 109.0, 95.0],
+      gdpGrowth: [-2.1, 2.9, -2.6, -2.1, -9.9, 10.3, 5.3, -1.0, 3.5, 2.2],
+      unemployment: [7.5, 7.2, 9.4, 8.8, 11.0, 9.8, 7.2, 7.6, 7.4, 7.3],
+      exchange: [14, 17, 38, 60, 80, 100, 150, 350, 580, 760]
+    };
+
+    // Inicializar tarjetas resumen
+    function updateCards(data) {
+      document.getElementById('cardInflacion').textContent = data.inflation12[data.inflation12.length-1] + ' %';
+      document.getElementById('cardPIB').textContent = data.gdpGrowth[data.gdpGrowth.length-1] + ' %';
+      document.getElementById('cardDesempleo').textContent = data.unemployment[data.unemployment.length-1] + ' %';
+      document.getElementById('cardCambio').textContent = data.exchange[data.exchange.length-1] + ' ARS';
+    }
+
+    // Llenar tabla
+    function populateTable(data) {
+      const tbody = document.getElementById('dataBody');
+      tbody.innerHTML = '';
+      for (let i = data.labels.length-1; i >=0; i--) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-3 py-1">${data.labels[i]}</td>
+          <td class="px-3 py-1 text-right">${data.inflation12[i]}</td>
+          <td class="px-3 py-1 text-right">${data.gdpGrowth[i]}</td>
+          <td class="px-3 py-1 text-right">${data.unemployment[i]}</td>
+          <td class="px-3 py-1 text-right">${data.exchange[i]}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // Crear charts
+    let charts = {};
+    function createCharts(data) {
+      const ctxI = document.getElementById('chartInflacion').getContext('2d');
+      const ctxG = document.getElementById('chartPIB').getContext('2d');
+      const ctxU = document.getElementById('chartDesempleo').getContext('2d');
+      const ctxC = document.getElementById('chartCambio').getContext('2d');
+
+      charts.inflation = new Chart(ctxI, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [
+            { label: 'Inflación 12m (%)', data: data.inflation12, tension: 0.25, fill: false },
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      charts.gdp = new Chart(ctxG, {
+        type: 'bar',
+        data: { labels: data.labels, datasets: [{ label: 'Crec. PIB (%)', data: data.gdpGrowth }]},
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      charts.unemployment = new Chart(ctxU, {
+        type: 'line',
+        data: { labels: data.labels, datasets: [{ label: 'Desempleo (%)', data: data.unemployment }]},
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      charts.exchange = new Chart(ctxC, {
+        type: 'line',
+        data: { labels: data.labels, datasets: [{ label: 'USD/ARS', data: data.exchange, yAxisID: 'y' }]},
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // Generar conclusiones simples (ejemplo)
+    function generateConclusions(data) {
+      const conclusions = [];
+      const lastInfl = data.inflation12[data.inflation12.length-1];
+      const prevInfl = data.inflation12[data.inflation12.length-2] || lastInfl;
+      if (lastInfl > prevInfl) conclusions.push(`La inflación interanual creció: ${prevInfl}% → ${lastInfl}%`);
+      else conclusions.push(`La inflación interanual disminuyó: ${prevInfl}% → ${lastInfl}%`);
+
+      const lastGDP = data.gdpGrowth[data.gdpGrowth.length-1];
+      if (lastGDP < 0) conclusions.push(`La economía muestra una contracción en el último año (${lastGDP}%).`);
+      else conclusions.push(`La economía creció el último año (${lastGDP}%).`);
+
+      const lastUn = data.unemployment[data.unemployment.length-1];
+      if (lastUn > 10) conclusions.push(`Tasa de desempleo elevada (${lastUn}%).`);
+      else conclusions.push(`Desempleo moderado (${lastUn}%).`);
+
+      return conclusions;
+    }
+
+    function renderConclusions(list) {
+      const ul = document.getElementById('conclusionList');
+      ul.innerHTML = '';
+      list.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        ul.appendChild(li);
+      });
+    }
+
+    // Filtros y eventos
+    document.getElementById('presetRange').addEventListener('change', function(e) {
+      // placeholder: en un dashboard real recortaría las series
+      // según años seleccionados. Aquí simplemente demostramos la UX.
+      // Si el usuario quiere, implemento recorte por fecha real.
+      alert('Cambio de rango temporal: esta demo no recorta datos. Puedo activarlo si quieres.');
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', function(){
+      // Resetea filtros a valores por defecto
+      document.getElementById('presetRange').value = '10';
+      document.querySelectorAll('.indicatorCheckbox').forEach(ch => ch.checked = true);
+      alert('Filtros reseteados (demo).');
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', function(){
+      // Exporta imágenes de cada gráfico (ejemplo para uno)
+      if (charts.inflation) {
+        const url = charts.inflation.toBase64Image();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'inflacion.png';
+        a.click();
+      }
+    });
+
+    // Función para cargar datos reales desde CSV (ejemplo)
+    async function fetchCSV(url) {
+      // Ejemplo: cargar CSV y parsear. Depende del formato del CSV.
+      // fetch(url).then(r => r.text()).then(text => { /* parsear */ });
+      console.warn('fetchCSV está en modo demo. Reemplace con su endpoint.');
+    }
+
+    // Inicialización
+    (function init() {
+      updateCards(sampleData);
+      populateTable(sampleData);
+      createCharts(sampleData);
+      const conc = generateConclusions(sampleData);
+      renderConclusions(conc);
+    })();
+
+  </script>
+
+</body>
+</html>
+
